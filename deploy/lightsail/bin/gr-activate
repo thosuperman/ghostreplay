@@ -3,7 +3,8 @@
 # Back up the databases, install the release's config, switch `current` to it atomically,
 # restart the labs and check health. On failure the previous release is restored.
 set -euo pipefail
-source /usr/local/lib/ghostreplay/gr-common.sh
+here=$(dirname "$(realpath "$0")")
+if [ -f "$here/gr-common.sh" ]; then source "$here/gr-common.sh"; else source /usr/local/lib/ghostreplay/gr-common.sh; fi
 need_root
 rel=$(realpath -e "${1:?release dir}")
 [[ $rel == "$GR_RELEASES"/* ]] || die "$rel is not under $GR_RELEASES"

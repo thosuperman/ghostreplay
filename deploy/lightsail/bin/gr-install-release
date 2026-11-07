@@ -30,4 +30,5 @@ done
 chmod -R a+rX,go-w "$rel"
 trap - ERR
 safe_rm "$tarball"
-exec /usr/local/sbin/gr-activate "$rel"
+# Activate with the scripts shipped in this release, not the ones installed earlier.
+exec "$rel/deploy/lightsail/bin/gr-activate" "$rel"

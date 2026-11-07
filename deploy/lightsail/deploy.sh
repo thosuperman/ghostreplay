@@ -48,7 +48,11 @@ log "uploading to $ip"
 gr_scp -q "$tarball" "$GR_SSH_USER@$ip:/tmp/ghostreplay-$id.tar.gz"
 case "$tarball" in */ghostreplay-*.tar.gz) rm -f -- "${tarball:?}" ;; esac
 log "installing and activating on the server"
-gr_ssh "sudo /usr/local/sbin/gr-install-release /tmp/ghostreplay-$id.tar.gz $id"
+# Run the installer shipped inside this release, so script fixes take effect immediately.
+gr_ssh "set -e; t=/tmp/ghostreplay-$id.tar.gz; i=/tmp/gr-install-$id
+  tar -xzf \$t -O ./deploy/lightsail/bin/gr-install-release > \$i
+  trap 'rm -f \$i' EXIT
+  sudo bash \$i \$t $id"
 
 log "verifying https://$GR_DOMAIN"
 for path in /healthz /lab/support/api/health /lab/devops/api/health; do

@@ -3,7 +3,8 @@
 # Re-activate an earlier release (default: the newest one other than `current`).
 # Data is not rolled back; use gr-restore for that.
 set -euo pipefail
-source /usr/local/lib/ghostreplay/gr-common.sh
+here=$(dirname "$(realpath "$0")")
+if [ -f "$here/gr-common.sh" ]; then source "$here/gr-common.sh"; else source /usr/local/lib/ghostreplay/gr-common.sh; fi
 need_root
 current=$(readlink -e "$GR_CURRENT") || die "no active release"
 if [ $# -ge 1 ]; then
@@ -14,4 +15,5 @@ else
 fi
 if [ -z "${target:-}" ] || [ ! -d "$target" ]; then die "no release to roll back to"; fi
 log "rolling back from $(basename "$current") to $(basename "$target")"
-exec /usr/local/sbin/gr-activate "$target"
+# Activate with the target release's own scripts (its config is what gets reinstalled).
+exec "$target/deploy/lightsail/bin/gr-activate" "$target"
