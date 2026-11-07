@@ -2,6 +2,9 @@ import { expect, test } from "./fixtures";
 
 const LAB = "support";
 
+// Runs are created through page.request so they belong to the page's own session: on a public
+// deployment each browser session only sees the executions it created.
+
 async function prepareDemo(request: import("@playwright/test").APIRequestContext) {
   const res = await request.post(`/lab/${LAB}/api/demo/prepare`, { data: { scenario: "duplicate-refund" } });
   expect(res.ok()).toBeTruthy();
@@ -20,39 +23,39 @@ test("explorer records a run and opens its timeline", async ({ page }) => {
   await expect(page.getByText(/scripted/i).first()).toBeVisible();
 });
 
-test("replay studio streams an offline replay that matches the recording", async ({ page, request }) => {
-  const { incident } = await prepareDemo(request);
+test("replay studio streams an offline replay that matches the recording", async ({ page }) => {
+  const { incident } = await prepareDemo(page.request);
   await page.goto(`/#/${LAB}/replay/${incident}`);
   await page.getByRole("button", { name: /replay/i }).first().click();
   await expect(page.getByRole("link", { name: /Diff recording ↔ replay/ })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/identical/i).first()).toBeVisible();
 });
 
-test("failure lab injects the headline fault and the fixed agent passes", async ({ page, request }) => {
-  const { baseline } = await prepareDemo(request);
+test("failure lab injects the headline fault and the fixed agent passes", async ({ page }) => {
+  const { baseline } = await prepareDemo(page.request);
   await page.goto(`/#/${LAB}/failure-lab/${baseline}`);
   await page.getByText(/Refund times out after commit/i).first().click();
   await page.getByRole("button", { name: /Run|Inject/ }).first().click();
   await expect(page.getByRole("link", { name: /Make it a regression test/ })).toBeVisible({ timeout: 30_000 });
 });
 
-test("diff view shows the first divergence between vulnerable and fixed runs", async ({ page, request }) => {
-  const { cfVuln, cfFixed } = await prepareDemo(request);
+test("diff view shows the first divergence between vulnerable and fixed runs", async ({ page }) => {
+  const { cfVuln, cfFixed } = await prepareDemo(page.request);
   await page.goto(`/#/${LAB}/diff?a=${cfVuln}&b=${cfFixed}`);
   await expect(page.getByText(/first divergence/i).first()).toBeVisible();
   await expect(page.getByText("idempotency_key").first()).toBeVisible();
 });
 
-test("regression view runs the case for every variant with opposite verdicts", async ({ page, request }) => {
-  const { cfVuln } = await prepareDemo(request);
+test("regression view runs the case for every variant with opposite verdicts", async ({ page }) => {
+  const { cfVuln } = await prepareDemo(page.request);
   await page.goto(`/#/${LAB}/regression/${cfVuln}`);
   await page.getByRole("button", { name: /Run/ }).first().click();
   await expect(page.getByText("FAIL").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("PASS").first()).toBeVisible();
 });
 
-test("every route renders without browser errors", async ({ page, request }) => {
-  const { incident, cfVuln, cfFixed } = await prepareDemo(request);
+test("every route renders without browser errors", async ({ page }) => {
+  const { incident, cfVuln, cfFixed } = await prepareDemo(page.request);
   for (const path of [
     "/",
     `/#/${LAB}/executions`,
@@ -69,7 +72,24 @@ test("every route renders without browser errors", async ({ page, request }) => 
 });
 
 test("health endpoints report both labs", async ({ request }) => {
-  const health = await request.get("/api/health");
-  expect(health.ok()).toBeTruthy();
-  expect((await health.json()).labs).toEqual({ devops: "ok", support: "ok" });
+  for (const lab of ["support", "devops"]) {
+    const health = await request.get(`/lab/${lab}/api/health`);
+    expect(health.ok()).toBeTruthy();
+    expect((await health.json()).status).toBe("ok");
+  }
+});
+
+test("a different browser session cannot see another session's runs", async ({ page, browser }) => {
+  const info = await (await page.request.get(`/lab/${LAB}/api/info`)).json();
+  test.skip(!info.isolated_sessions, "session isolation is only enabled on public deployments");
+  const { incident } = await prepareDemo(page.request);
+  const other = await browser.newContext();
+  try {
+    const res = await other.request.get(`/lab/${LAB}/api/executions/${incident}`);
+    expect(res.status()).toBe(404);
+    expect(await (await other.request.get(`/lab/${LAB}/api/executions`)).json()).toEqual([]);
+  } finally {
+    await other.close();
+  }
+  expect((await page.request.get(`/lab/${LAB}/api/executions/${incident}`)).ok()).toBeTruthy();
 });

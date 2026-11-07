@@ -11,7 +11,7 @@ for (const demo of [
   { cta: /Try the Duplicate Refund Demo/, lab: "support" },
   { cta: /Try the Unsafe AWS Operation Demo/, lab: "devops" },
 ]) {
-  test(`${demo.lab}: one click runs the full story on real executions`, async ({ page, request }) => {
+  test(`${demo.lab}: one click runs the full story on real executions`, async ({ page }) => {
     await page.goto("/");
     await page.getByRole("link", { name: demo.cta }).click();
     await expect(page).toHaveURL(new RegExp(`#/${demo.lab}/story`));
@@ -25,7 +25,7 @@ for (const demo of [
     expect(verdicts).toEqual(["fail", "pass", "info", "fail", "pass", "pass"]);
 
     // The story is backed by executions the lab actually stored.
-    const stored = await request.get(`/lab/${demo.lab}/api/executions`);
+    const stored = await page.request.get(`/lab/${demo.lab}/api/executions`);
     expect(stored.ok()).toBeTruthy();
     const rows = (await stored.json()) as { mode: string; invariants_failed: number }[];
     expect(rows.some((r) => r.mode === "record" && r.invariants_failed > 0)).toBeTruthy();
