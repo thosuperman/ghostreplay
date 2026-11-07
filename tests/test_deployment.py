@@ -55,7 +55,8 @@ def test_public_profile_disables_live_mode_and_clearing():
     assert info["storage"] == "sqlite"  # no server paths leaked
     assert client.delete("/api/executions").status_code == 403
     r = client.post(
-        "/api/runs/record", json={"scenario": "duplicate-refund", "variant": "fixed", "model": "live"}
+        "/api/runs/record",
+        json={"scenario": "duplicate-refund", "variant": "fixed", "model": "live"},
     )
     assert r.status_code == 400 and "live AI mode is not enabled" in r.json()["detail"]
 
@@ -66,7 +67,9 @@ def test_public_profile_rate_limits_and_caps_bodies():
     body = {"scenario": "duplicate-refund", "variant": "fixed"}
     codes = [client.post("/api/runs/record", json=body).status_code for _ in range(4)]
     assert codes == [200, 200, 200, 429]
-    big = client.post("/api/runs/record", content=b"x" * 500, headers={"content-type": "application/json"})
+    big = client.post(
+        "/api/runs/record", content=b"x" * 500, headers={"content-type": "application/json"}
+    )
     assert big.status_code == 413
     assert client.get("/api/executions").status_code == 200  # reads are not limited
 

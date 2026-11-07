@@ -132,7 +132,8 @@ Agents written for GhostReplay reach the outside world only through `AgentRuntim
 ```python
 result = rt.complete(ModelRequest(model=rt.model_name, messages=messages, tools=tools))
 refund = rt.call_tool("payments.create_refund", {"payment_id": "pay_3KQ81", "amount_cents": 12900})
-key    = rt.new_id("idem");  now = rt.now()
+key = rt.new_id("idem")
+now = rt.now()
 ```
 
 Every call goes through a single `Session.interact`. Depending on the mode, it executes the
