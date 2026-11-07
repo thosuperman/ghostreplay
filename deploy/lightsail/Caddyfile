@@ -1,0 +1,69 @@
+# GhostReplay Lab — public entry point (Caddy 2).
+# Static dashboard from the active release; each lab API is a separate local service.
+# The domain can be overridden with GHOSTREPLAY_DOMAIN in Caddy's environment.
+{
+	admin localhost:2019
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 20MiB
+			roll_keep 5
+			roll_keep_for 336h
+		}
+		format json
+	}
+}
+
+{$GHOSTREPLAY_DOMAIN:ghostreplay.hayaix.tech} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# Every API request is small JSON; the apps enforce their own (smaller) limits too.
+	request_body {
+		max_size 1MB
+	}
+
+	# Liveness of the proxy itself (the labs report readiness under /lab/<name>/api/health).
+	handle /healthz {
+		respond `{"status":"ok"}` 200
+	}
+
+	handle_path /lab/support/* {
+		reverse_proxy 127.0.0.1:8101 {
+			flush_interval -1
+		}
+	}
+
+	handle_path /lab/devops/* {
+		reverse_proxy 127.0.0.1:8102 {
+			flush_interval -1
+		}
+	}
+
+	handle /assets/* {
+		root * /opt/ghostreplay/current/dashboard
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle {
+		root * /opt/ghostreplay/current/dashboard
+		try_files {path} /index.html
+		header Cache-Control "no-cache"
+		file_server
+	}
+}
+
+# Bare IP or unknown host names: no content.
+:80 {
+	respond 404
+}

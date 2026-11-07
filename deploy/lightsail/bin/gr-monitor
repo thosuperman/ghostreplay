@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# gr-monitor — run every 5 minutes by ghostreplay-monitor.timer.
+# Logs one status line to the journal; restarts a lab after two failed health checks in a
+# row; warns on low disk, low memory or a large data directory.
+set -uo pipefail
+source /usr/local/lib/ghostreplay/gr-common.sh
+state=/run/ghostreplay-monitor
+mkdir -p "$state"
+status=()
+for lab in "${GR_LABS[@]}"; do
+  if lab_healthy "$lab"; then
+    : > "$state/$lab"
+    status+=("$lab=ok")
+  else
+    n=$(( $(cat "$state/$lab" 2>/dev/null || echo 0) + 1 ))
+    echo "$n" > "$state/$lab"
+    status+=("$lab=FAIL($n)")
+    if ((n >= 2)); then
+      echo "WARNING: $lab failed $n health checks; restarting ghostreplay-$lab"
+      systemctl restart "ghostreplay-$lab"
+      : > "$state/$lab"
+    fi
+  fi
+done
+disk=$(df --output=pcent / | tail -1 | tr -dc 0-9)
+avail=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
+data=$(du -sm "$GR_DATA" 2>/dev/null | cut -f1)
+load=$(cut -d' ' -f1-3 /proc/loadavg)
+echo "status ${status[*]} disk=${disk}% mem_available=${avail}MiB data=${data}MiB load=${load}"
+if ((disk >= 85)); then echo "WARNING: root filesystem ${disk}% full"; fi
+if ((avail < 200)); then echo "WARNING: only ${avail}MiB memory available"; fi
+if ((data > 1024)); then echo "WARNING: data directory is ${data}MiB"; fi
+exit 0

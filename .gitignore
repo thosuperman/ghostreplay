@@ -16,3 +16,4 @@ apps/dashboard/*.tsbuildinfo
 !.env.example
 apps/dashboard/test-results/
 apps/dashboard/playwright-report/
+/backups/

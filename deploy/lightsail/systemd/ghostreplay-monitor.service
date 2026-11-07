@@ -1,0 +1,6 @@
+[Unit]
+Description=GhostReplay Lab health, disk and memory check
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/gr-monitor

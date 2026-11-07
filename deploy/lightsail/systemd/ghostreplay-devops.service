@@ -1,0 +1,62 @@
+# GhostReplay Lab — devops lab API (one independent process per lab).
+# Listens on 127.0.0.1:8102 only; Caddy is the sole public entry point.
+[Unit]
+Description=GhostReplay Lab devops lab API
+After=network.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=ghostreplay-devops
+Group=ghostreplay-devops
+EnvironmentFile=/etc/ghostreplay/ghostreplay.env
+WorkingDirectory=/var/lib/ghostreplay/devops
+ExecStart=/opt/ghostreplay/current/.venv/bin/devops-agent-lab --db /var/lib/ghostreplay/devops serve --host 127.0.0.1 --port 8102
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+
+# Resources: one uvicorn worker (rate limits and run slots are per process).
+MemoryHigh=320M
+MemoryMax=450M
+TasksMax=64
+LimitNOFILE=4096
+
+# Network: loopback only. No egress, no instance metadata (169.254.169.254), no AWS APIs.
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Filesystem: read-only system and release; writable data directory only.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/ghostreplay/devops
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+UMask=0077
+
+# Privileges and kernel surface.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=multi-user.target

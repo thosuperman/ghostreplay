@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# gr-install-release <release.tar.gz> <release-id>
+# Unpack a release built by deploy.sh, install its locked dependencies, then activate it.
+set -euo pipefail
+source /usr/local/lib/ghostreplay/gr-common.sh
+need_root
+tarball=${1:?release tarball}
+id=${2:?release id}
+[[ $id =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid release id: $id"
+rel=$GR_RELEASES/$id
+[ -e "$rel" ] && die "release $id already exists"
+
+umask 022
+mkdir -p "$rel"
+trap 'log "install failed; removing $rel"; safe_rm "$rel"' ERR
+tar -xzf "$tarball" -C "$rel" --no-same-owner
+[ -f "$rel/dashboard/index.html" ] || die "release has no dashboard build"
+[ -f "$rel/uv.lock" ] || die "release has no uv.lock"
+
+log "installing locked dependencies (no dev packages)"
+(
+  cd "$rel"
+  UV_PYTHON=/usr/bin/python3.12 UV_PYTHON_DOWNLOADS=never \
+  UV_CACHE_DIR=/var/cache/ghostreplay-uv UV_NO_PROGRESS=1 \
+    /usr/local/bin/uv sync --frozen --no-dev --no-editable --compile-bytecode --quiet
+)
+for cmd in support-agent-lab devops-agent-lab; do
+  [ -x "$rel/.venv/bin/$cmd" ] || die "missing entry point $cmd"
+done
+chmod -R a+rX,go-w "$rel"
+trap - ERR
+safe_rm "$tarball"
+exec /usr/local/sbin/gr-activate "$rel"

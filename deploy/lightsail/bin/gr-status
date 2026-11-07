@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# gr-status — one-screen overview of the deployment.
+set -uo pipefail
+source /usr/local/lib/ghostreplay/gr-common.sh
+echo "release:  $(basename "$(readlink -f "$GR_CURRENT")")"
+echo "releases: $(ls -1t "$GR_RELEASES" | tr '\n' ' ')"
+for unit in caddy ghostreplay-support ghostreplay-devops ghostreplay-backup.timer ghostreplay-monitor.timer; do
+  printf '%-28s %s\n' "$unit" "$(systemctl is-active "$unit")"
+done
+for lab in "${GR_LABS[@]}"; do
+  printf '%-8s %s\n' "$lab" "$(curl -fsS -m 5 "http://127.0.0.1:${GR_PORT[$lab]}/api/health" || echo unhealthy)"
+  printf '         memory %s\n' "$(systemctl show "ghostreplay-$lab" -p MemoryCurrent --value | awk '{printf "%.0f MiB", $1/1048576}')"
+done
+echo
+free -m
+echo
+df -h /
+echo
+du -sh "$GR_DATA"/* "$GR_BACKUPS" 2>/dev/null
+echo
+journalctl -u ghostreplay-monitor --since -1h -o cat --no-pager | tail -3

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# gr-rollback [release-id]
+# Re-activate an earlier release (default: the newest one other than `current`).
+# Data is not rolled back; use gr-restore for that.
+set -euo pipefail
+source /usr/local/lib/ghostreplay/gr-common.sh
+need_root
+current=$(readlink -f "$GR_CURRENT")
+if [ $# -ge 1 ]; then
+  [[ $1 =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid release id"
+  target=$GR_RELEASES/$1
+else
+  target=$(ls -1dt "$GR_RELEASES"/*/ | sed 's#/$##' | grep -vxF "$current" | head -n1 || true)
+fi
+if [ -z "${target:-}" ] || [ ! -d "$target" ]; then die "no release to roll back to"; fi
+log "rolling back from $(basename "$current") to $(basename "$target")"
+exec /usr/local/sbin/gr-activate "$target"

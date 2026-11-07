@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# gr-activate <release-dir>
+# Back up the databases, install the release's config, switch `current` to it atomically,
+# restart the labs and check health. On failure the previous release is restored.
+set -euo pipefail
+source /usr/local/lib/ghostreplay/gr-common.sh
+need_root
+rel=$(realpath -e "${1:?release dir}")
+[[ $rel == "$GR_RELEASES"/* ]] || die "$rel is not under $GR_RELEASES"
+prev=$(readlink -f "$GR_CURRENT" 2>/dev/null || true)
+
+install_config() {  # install_config <release-dir>
+  local s=$1/deploy/lightsail f
+  caddy validate --adapter caddyfile --config "$s/Caddyfile" >/dev/null 2>&1 \
+    || die "Caddyfile in $1 does not validate"
+  install -m 644 "$s/Caddyfile" /etc/caddy/Caddyfile
+  install -m 644 "$s"/systemd/*.service "$s"/systemd/*.timer /etc/systemd/system/
+  install -d -m 755 /etc/ghostreplay /usr/local/lib/ghostreplay
+  install -m 644 "$s/ghostreplay.env" /etc/ghostreplay/ghostreplay.env
+  install -m 644 "$s/bin/gr-common.sh" /usr/local/lib/ghostreplay/gr-common.sh
+  for f in "$s"/bin/gr-*; do
+    [[ $f == *.sh ]] || install -m 755 "$f" /usr/local/sbin/
+  done
+  systemctl daemon-reload
+}
+
+switch_to() {  # switch_to <release-dir>   (atomic symlink swap)
+  ln -sfn "$1" "$GR_ROOT/.current.tmp"
+  mv -T "$GR_ROOT/.current.tmp" "$GR_CURRENT"
+}
+
+restart_all() {
+  systemctl enable --quiet ghostreplay-support ghostreplay-devops \
+    ghostreplay-backup.timer ghostreplay-monitor.timer caddy
+  systemctl restart ghostreplay-support ghostreplay-devops
+  systemctl start ghostreplay-backup.timer ghostreplay-monitor.timer
+  systemctl reload-or-restart caddy
+}
+
+if [ -n "$prev" ]; then
+  /usr/local/sbin/gr-backup pre-deploy || die "pre-deploy backup failed; nothing changed"
+fi
+
+log "activating $(basename "$rel")${prev:+ (previous: $(basename "$prev"))}"
+install_config "$rel"
+switch_to "$rel"
+restart_all
+
+if wait_healthy 45; then
+  log "both labs healthy on $(basename "$rel")"
+else
+  log "health check failed for $(basename "$rel")"
+  journalctl -u ghostreplay-support -u ghostreplay-devops -n 30 --no-pager >&2 || true
+  if [ -n "$prev" ] && [ "$prev" != "$rel" ]; then
+    log "rolling back to $(basename "$prev")"
+    install_config "$prev"
+    switch_to "$prev"
+    restart_all
+    if wait_healthy 45; then log "rollback healthy"; else log "rollback ALSO unhealthy"; fi
+  fi
+  exit 1
+fi
+
+# Through Caddy over HTTPS (answers once DNS points here and the certificate is issued).
+if curl -fsS -m 10 --resolve "$GR_DOMAIN:443:127.0.0.1" \
+    "https://$GR_DOMAIN/lab/support/api/health" >/dev/null 2>&1; then
+  log "https://$GR_DOMAIN routes to the labs"
+else
+  log "note: HTTPS route not answering yet (DNS or certificate pending?)"
+fi
+
+# Keep the five newest releases plus whatever is current.
+current=$(readlink -f "$GR_CURRENT")
+mapfile -t old < <(ls -1dt "$GR_RELEASES"/*/ 2>/dev/null | sed 's#/$##' | tail -n +6)
+for d in "${old[@]}"; do
+  if [ "$d" != "$current" ]; then
+    log "pruning old release $(basename "$d")"
+    safe_rm "$d"
+  fi
+done

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# gr-restore <support|devops> <backup.sqlite3.gz>
+# Verify a backup, keep the live database aside, swap the backup in and restart the lab.
+set -euo pipefail
+source /usr/local/lib/ghostreplay/gr-common.sh
+need_root
+lab=${1:?lab (support|devops)}
+backup=$(realpath -e "${2:?backup file}")
+[[ " ${GR_LABS[*]} " == *" $lab "* ]] || die "unknown lab $lab"
+dir=$GR_DATA/$lab
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+work=$(mktemp -d /tmp/gr-restore.XXXXXX)
+trap 'safe_rm "$work"' EXIT
+gzip -dc "$backup" > "$work/restore.sqlite3"
+/usr/bin/python3 -I - "$work/restore.sqlite3" <<'PY'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+check = c.execute("PRAGMA integrity_check").fetchone()[0]
+if check != "ok":
+    sys.exit(f"backup failed integrity_check: {check}")
+n = c.execute("SELECT COUNT(*) FROM executions").fetchone()[0]
+print(f"backup verified: {n} executions")
+PY
+shopt -s nullglob
+dbs=("$dir"/*.sqlite3)
+[ ${#dbs[@]} -eq 1 ] || die "expected exactly one database in $dir"
+db=${dbs[0]}
+/usr/local/sbin/gr-backup pre-restore
+systemctl stop "ghostreplay-$lab"
+aside=$dir/pre-restore-$ts
+mkdir -p "$aside"
+mv "$db" "$aside/"
+for f in "$db-wal" "$db-shm"; do
+  if [ -e "$f" ]; then mv "$f" "$aside/"; fi
+done
+install -o "ghostreplay-$lab" -g "ghostreplay-$lab" -m 600 "$work/restore.sqlite3" "$db"
+chown -R "ghostreplay-$lab:ghostreplay-$lab" "$aside"
+chmod 700 "$aside"
+systemctl start "ghostreplay-$lab"
+if wait_healthy 30; then
+  log "restored $lab from $(basename "$backup"); previous files kept in $aside"
+else
+  die "lab unhealthy after restore; previous files are in $aside"
+fi

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# gr-backup [label]
+# Consistent online backups of each lab's SQLite database using SQLite's backup API, taken
+# as the lab's own user so WAL/SHM files never change owner. Keeps the newest GR_BACKUP_KEEP
+# (default 14) backups per lab. Backups live on the same disk as the data: copy them off the
+# instance (see docs/deployment/BACKUP_RESTORE.md) if they must survive losing the instance.
+set -euo pipefail
+source /usr/local/lib/ghostreplay/gr-common.sh
+need_root
+label=${1:-daily}
+[[ $label =~ ^[a-z0-9-]+$ ]] || die "invalid label"
+keep=${GR_BACKUP_KEEP:-14}
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+install -d -m 700 "$GR_BACKUPS"
+shopt -s nullglob
+for lab in "${GR_LABS[@]}"; do
+  dir=$GR_DATA/$lab
+  install -d -m 700 "$GR_BACKUPS/$lab"
+  for db in "$dir"/*.sqlite3; do
+    name=$(basename "$db" .sqlite3)
+    tmp=$dir/.backup-$ts.sqlite3
+    rows=$(runuser -u "ghostreplay-$lab" -- /usr/bin/python3 -I - "$db" "$tmp" <<'PY'
+import sqlite3, sys
+src = sqlite3.connect(sys.argv[1], timeout=30)
+dst = sqlite3.connect(sys.argv[2])
+with dst:
+    src.backup(dst)
+check = dst.execute("PRAGMA integrity_check").fetchone()[0]
+rows = dst.execute("SELECT COUNT(*) FROM executions").fetchone()[0]
+dst.close()
+src.close()
+if check != "ok":
+    sys.exit(f"integrity_check: {check}")
+print(rows)
+PY
+)
+    out=$GR_BACKUPS/$lab/$name-$ts-$label.sqlite3.gz
+    gzip -9 -c "$tmp" > "$out"
+    chmod 600 "$out"
+    safe_rm "$tmp"
+    log "backup $lab: $rows executions -> $out ($(du -h "$out" | cut -f1))"
+  done
+  mapfile -t stale < <(ls -1t "$GR_BACKUPS/$lab"/*.sqlite3.gz 2>/dev/null | tail -n +$((keep + 1)))
+  if ((${#stale[@]})); then safe_rm "${stale[@]}"; fi
+done

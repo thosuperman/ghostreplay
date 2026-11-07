@@ -1,0 +1,8 @@
+[Unit]
+Description=GhostReplay Lab SQLite backup
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/gr-backup
+Nice=10
+IOSchedulingClass=idle
