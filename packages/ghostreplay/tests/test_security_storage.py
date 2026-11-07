@@ -19,7 +19,7 @@ def test_redactor_scrubs_keys_and_values_but_keeps_benign_fields():
     data = {
         "api_key": "abc123",
         "headers": {"Authorization": "Bearer abcdefghijklmnop", "Idempotency-Key": "refund:1"},
-        "note": "use key AKIAABCDEFGHIJKLMNOP and sk-live-abcdefghijklmnopqrstuv",
+        "note": "use key AKIAABCDEFGHIJKLMNOP and sk-live-abcdefghijklmnopqrstuv",  # secret-scan: allow
         "card": "4242 4242 4242 4242",
         "order_number": "1234567890123",  # not Luhn valid -> kept
         "max_tokens": 1000,

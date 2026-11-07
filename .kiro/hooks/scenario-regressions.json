@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Scenario and regression checks",
+      "description": "When either lab app (Support Agent Lab or DevOps Agent Lab) is saved, re-run both apps' scenario tests and the committed regression cases: vulnerable variants must still FAIL their safety invariants and fixed variants must PASS.",
+      "trigger": "PostFileSave",
+      "matcher": "apps/(support|devops)-agent/.*\\.py$",
+      "timeout": 300,
+      "enabled": true,
+      "action": {
+        "type": "command",
+        "command": "uv run pytest apps tests/regression -q -x"
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Sync dashboard types with the Pydantic schema",
+      "description": "When a GhostReplay schema model changes, ask the agent to mirror the change in the dashboard's TypeScript types and type-check the dashboard.",
+      "trigger": "PostFileSave",
+      "matcher": "packages/ghostreplay/src/ghostreplay/models/.*\\.py$",
+      "enabled": true,
+      "action": {
+        "type": "agent",
+        "prompt": "A Pydantic model in packages/ghostreplay/src/ghostreplay/models/ was just changed. Compare the changed models (Event, Execution, ExecutionSummary, FaultSpec, FaultTarget, FaultPreset, Divergence, InvariantResult, Provenance, AppliedFault, ReplayAnnotation and their enums) with apps/dashboard/src/api/types.ts and update types.ts so every field name, optionality (Optional -> `T | null`), literal union and enum value matches the Python model exactly. Do not change the Python models. If a change is not backward compatible with stored ghostreplay/v1 documents, say so explicitly instead of silently bumping SCHEMA_VERSION. Then run `corepack pnpm --dir apps/dashboard typecheck` and fix any type errors in apps/dashboard/src caused by the change. Summarise which fields changed."
+      }
+    }
+  ]
+}

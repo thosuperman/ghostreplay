@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Framework guarantee tests",
+      "description": "When a file in the shared ghostreplay package is saved, run its guarantee test suite (replay determinism, divergence detection, offline guard, redaction, fault semantics, storage integrity). Stops at the first failure.",
+      "trigger": "PostFileSave",
+      "matcher": "packages/ghostreplay/.*\\.py$",
+      "timeout": 180,
+      "enabled": true,
+      "action": {
+        "type": "command",
+        "command": "uv run pytest packages/ghostreplay/tests -q -x"
+      }
+    }
+  ]
+}

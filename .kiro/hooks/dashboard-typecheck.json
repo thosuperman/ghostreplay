@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Dashboard typecheck",
+      "description": "When a dashboard source file is saved, type-check the React app with tsc --noEmit (strict mode).",
+      "trigger": "PostFileSave",
+      "matcher": "apps/dashboard/src/.*\\.tsx?$",
+      "timeout": 120,
+      "enabled": true,
+      "action": {
+        "type": "command",
+        "command": "corepack pnpm --dir apps/dashboard typecheck"
+      }
+    }
+  ]
+}

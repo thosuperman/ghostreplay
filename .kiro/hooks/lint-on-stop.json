@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint and format check when the agent stops",
+      "description": "When the agent finishes a turn, run Ruff lint and the Ruff format check over the whole Python workspace (the same checks CI runs).",
+      "trigger": "Stop",
+      "timeout": 120,
+      "enabled": true,
+      "action": {
+        "type": "command",
+        "command": "uv run ruff check . && uv run ruff format --check ."
+      }
+    }
+  ]
+}

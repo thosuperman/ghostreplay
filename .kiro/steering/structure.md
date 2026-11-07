@@ -2,40 +2,63 @@
 inclusion: always
 ---
 
-# Architecture principles and repository structure
+# Repository structure
 
 ```
-packages/ghostreplay/src/ghostreplay/   shared framework (all real functionality)
-  models/      versioned execution schema (Event, Execution, FaultSpec, ...)
-  core/        canonical JSON hashing, clocks, deterministic sources, errors
-  recorder/    Recorder + Redactor
-  runtime/     AgentRuntime: the only door between an agent and the world
-  replay/      Session (record / replay / branch), offline network guard
-  mocking/     ToolRegistry, simulated HTTP / database / AWS backends, model adapters
-  mutation/    fault catalog + fault application
-  diff/        structural trace diff
-  regression/  invariants, regression cases, runner, pytest generation, JUnit/JSON reports
-  lab/         Scenario abstraction + Lab orchestrator
-  storage/     SQLite store, safe trace import/export
-  server/      FastAPI app factory used by every lab
-apps/support-agent/   Support Agent Lab (Duplicate Refund)   — imports ghostreplay
-apps/devops-agent/    DevOps Agent Lab (Unsafe Infra Action) — imports ghostreplay
-apps/dashboard/       React dashboard, talks to any lab via the shared HTTP API
-tests/regression/     generated, committed regression cases
+packages/ghostreplay/src/ghostreplay/   shared framework (all real engine functionality)
+  models/        versioned schema ghostreplay/v1: Event, Execution (+ integrity validator),
+                 ExecutionSummary, FaultSpec/FaultTarget/FaultPreset, Divergence, results
+  core/          canonical JSON + stable hashing, deep_diff, VirtualClock, DeterministicSources,
+                 error hierarchy (GhostReplayError, TraceFormatError, ToolError family)
+  recorder/      Recorder (sequenced events, listeners) + Redactor
+  runtime.py     AgentRuntime: complete / call_tool / now / new_id / random / log / guard
+  replay/        Session (record, replay, counterfactual-replay, branch) + offline_guard
+  mocking/       ToolRegistry/ToolSpec allowlist, simulated HTTP service, database, AWS-like
+                 cloud, ModelAdapter protocol + ScriptedModel
+  llm/           optional live mode: LiveModelConfig (env), AnthropicModel adapter
+  mutation/      fault catalog (13 kinds) + FaultPlan + apply_fault
+  diff/          structural trace diff (alignment, typed entries, first divergence, behaviour)
+  regression/    Invariant/Check/TraceView, RegressionCase/Report, runner, pytest + JUnit/JSON
+  lab/           Scenario abstraction, registry (ghostreplay.scenarios entry points), Lab
+                 orchestrator, guided demo story (DemoStep.expected / DemoStory.ok)
+  storage/       SqliteStore (WAL, retention cap, ping), parse_document, safe import/export
+  server/        create_app (per-lab HTTP API + SSE), ServerSettings/RateLimiter (public
+                 profile), create_gateway (ghostreplay.labs entry points), lab_main CLI
+  cli.py         `ghostreplay scenarios | serve | test`
+packages/ghostreplay/tests/   framework guarantee tests (toy-bank scenario in toy.py)
+apps/support-agent/           Support Agent Lab — Duplicate Refund (support_agent package)
+apps/devops-agent/            DevOps Agent Lab — Unsafe Infrastructure Action (devops_agent)
+apps/dashboard/               React dashboard (src/api, src/components, src/lib, src/views)
+tests/regression/             committed regression cases (*.case.json + generated test_*.py)
+tests/                        deployment/gateway tests, example test, secret-scanner test
+examples/minimal_agent.py     bring-your-own-agent integration example
+scripts/                      dev.sh (start everything), secret_scan.py
+docs/                         architecture, deployment, live AI, demo script, Kiro workflow
+.github/workflows/ci.yml      CI pipeline
+Dockerfile, compose.yaml, render.yaml   container + hosting
+.kiro/                        steering, specs, hooks, settings (this directory)
 ```
+
+Each lab app has the same layout: `environment.py` (simulated world), `tools.py` (ToolSpecs
+with Pydantic argument models), `model.py` (scripted policy), `agent.py` (harness with a
+`vulnerable` and a `fixed` variant), `invariants.py`, `scenario.py` (Scenario subclass + fault
+presets), `cli.py` (`build_lab` + `main` via `lab_main`). Apps register their scenario under the
+`ghostreplay.scenarios` entry point and their lab under `ghostreplay.labs`.
 
 ## Principles
 
-1. **One door.** Agents touch the outside world only through `AgentRuntime`
-   (`complete`, `call_tool`, `now`, `new_id`, `random`). That is what makes deterministic
-   replay possible without monkey-patching arbitrary libraries.
+1. **One door.** Agents touch the world only through `AgentRuntime`. That is what makes
+   deterministic replay possible without monkey-patching libraries.
 2. **One code path.** Model calls, tool calls and nondeterminism all flow through
    `Session.interact`. Record, replay, fault injection and branch execution are policies of
-   that single path, not separate engines.
-3. **Framework knows no business logic.** No refunds, orders or EC2 in `ghostreplay`. The
-   simulated backends are generic (HTTP routes, tables, cloud resources); apps supply data.
-4. **Strict ordering, loud divergence.** Replay consumes recorded interactions in order. Any
-   mismatch produces a `divergence` event; recorded responses are never consumed out of order.
-5. **Fix in code you control.** Both demo apps share one scripted model per scenario; the
-   vulnerable and fixed variants differ only in harness code (retry/idempotency, safety gate).
-6. **Simplicity.** Prefer a 50-line clear function over an abstraction with one user.
+   that one path, not separate engines.
+3. **Framework knows no business logic.** No refunds or EC2 in `ghostreplay`; simulated backends
+   are generic, apps supply data, tools, invariants and presets.
+4. **Strict ordering, loud divergence.** Replay consumes recorded interactions in `seq` order;
+   any mismatch produces a `divergence` event. Recordings that are out of order, have duplicate
+   event ids or a different schema version are rejected on load (`TraceFormatError`).
+5. **Fix in code you control.** Both variants of an app share one scripted model; they differ
+   only in harness code (idempotent retry, SafetyGate).
+6. **Simplicity.** Prefer a clear 50-line function over an abstraction with one user.
+7. **Labs stay independent.** Each app runs alone (`<app> serve`); the gateway only hosts them
+   side by side.
