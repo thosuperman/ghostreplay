@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+node_modules/
+dist/
+.ghostreplay/
+*.sqlite3
+*.db
+reports/
+.DS_Store
+apps/dashboard/*.tsbuildinfo

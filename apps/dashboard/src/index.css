@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-ink-950: #06070b;
+  --color-ink-900: #0a0c12;
+  --color-ink-850: #0e1118;
+  --color-ink-800: #121620;
+  --color-ink-700: #1a1f2c;
+  --color-ink-600: #252b3b;
+  --color-ink-500: #363e52;
+  --color-ink-400: #5b6479;
+  --color-ink-300: #8c95a8;
+  --color-ink-200: #b9c0cf;
+  --color-ink-100: #e3e7ef;
+
+  --color-accent: #8b5cf6;
+  --color-accent-soft: #a78bfa;
+  --color-replay: #22d3ee;
+
+  --animate-rise: rise 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-fade: fade 220ms ease-out both;
+  --animate-pulse-ring: pulse-ring 1.8s ease-out infinite;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(34 211 238 / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(34 211 238 / 0);
+  }
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink-950);
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgb(139 92 246 / 0.09), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgb(34 211 238 / 0.06), transparent 60%);
+  background-attachment: fixed;
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: rgb(139 92 246 / 0.35);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.text-gradient {
+  background: linear-gradient(100deg, #e9e5ff 0%, #c4b5fd 35%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hairline {
+  border-color: rgb(255 255 255 / 0.07);
+}
+
+.json-key {
+  color: #c4b5fd;
+}
+.json-string {
+  color: #86efac;
+}
+.json-number {
+  color: #fcd34d;
+}
+.json-bool {
+  color: #67e8f9;
+}
+.json-null {
+  color: #8c95a8;
+}

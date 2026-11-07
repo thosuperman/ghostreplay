@@ -1,0 +1,10 @@
+{
+  "name": "ghostreplay-lab",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir apps/dashboard dev",
+    "build": "pnpm --dir apps/dashboard build",
+    "typecheck": "pnpm --dir apps/dashboard typecheck"
+  },
+  "packageManager": "pnpm@12.18.0"
+}

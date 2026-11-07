@@ -1,0 +1,22 @@
+[project]
+name = "support-agent-lab"
+version = "0.1.0"
+description = "Support Agent Lab: the Duplicate Refund scenario, built on GhostReplay"
+requires-python = ">=3.12"
+dependencies = ["ghostreplay"]
+
+[project.scripts]
+support-agent-lab = "support_agent.cli:main"
+
+[project.entry-points."ghostreplay.scenarios"]
+duplicate-refund = "support_agent.scenario:DuplicateRefundScenario"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/support_agent"]
+
+[tool.uv.sources]
+ghostreplay = { workspace = true }

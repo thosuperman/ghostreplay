@@ -1,0 +1,37 @@
+[project]
+name = "ghostreplay-lab"
+version = "0.1.0"
+description = "GhostReplay Lab monorepo: deterministic replay and failure testing for AI agents"
+requires-python = ">=3.12"
+dependencies = ["ghostreplay", "support-agent-lab", "devops-agent-lab"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/ghostreplay", "apps/support-agent", "apps/devops-agent"]
+
+[tool.uv.sources]
+ghostreplay = { workspace = true }
+support-agent-lab = { workspace = true }
+devops-agent-lab = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.6", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib -q"
+filterwarnings = ["ignore::DeprecationWarning:fastapi.testclient", "ignore:Using `httpx`"]
+testpaths = ["packages/ghostreplay/tests", "apps/support-agent/tests", "apps/devops-agent/tests", "tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["apps/dashboard"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["RUF012", "B008", "E501", "RUF001", "SIM105", "SIM108"]  # E501: formatter owns layout
+
+[tool.ruff.lint.isort]
+known-first-party = ["ghostreplay", "support_agent", "devops_agent"]
