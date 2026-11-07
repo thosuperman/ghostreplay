@@ -56,8 +56,10 @@ turn, as the Messages API requires for thinking blocks.
 - Live mode is off unless `GHOSTREPLAY_LIVE=1`, and is always off in the public
   deployment profile (`GHOSTREPLAY_PUBLIC=1`).
 - Per-execution call budget; exceeding it fails the run loudly.
-- A refusal (`stop_reason: refusal`) is recorded as an error, never as success.
-  Requests opt into the API's server-side refusal fallback (`fallbacks: "default"`).
+- A refusal (`stop_reason: refusal`) stops the run: the execution ends with status
+  `failed` and an error event naming the refusal category. It is never treated as
+  success. Requests opt into the API's server-side refusal fallback (`fallbacks: "default"`).
+- Exceeding the call budget fails the run the same way.
 - Credentials are read by the provider SDK from the environment; they never appear in
   requests that GhostReplay records.
 
