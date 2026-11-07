@@ -8,7 +8,7 @@ from typing import Any
 from ghostreplay import AgentResult, AgentRuntime, ToolError
 from ghostreplay.mocking import Message, ModelRequest, ToolCallRequest
 
-from .model import MODEL_NAME, SYSTEM_PROMPT
+from .model import SYSTEM_PROMPT
 from .safety import DESTRUCTIVE, SafetyGate
 
 MAX_STEPS = 10
@@ -38,12 +38,12 @@ class DevOpsAgent:
         final = ""
         for _ in range(MAX_STEPS):
             result = rt.complete(
-                ModelRequest(model=MODEL_NAME, system=SYSTEM_PROMPT, messages=messages, tools=tools)
+                ModelRequest(
+                    model=rt.model_name, system=SYSTEM_PROMPT, messages=messages, tools=tools
+                )
             )
             resp = result.response
-            messages.append(
-                Message(role="assistant", content=resp.content, tool_calls=resp.tool_calls)
-            )
+            messages.append(Message.assistant(resp))
             if not resp.tool_calls:
                 final = resp.content
                 break

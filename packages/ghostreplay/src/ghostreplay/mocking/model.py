@@ -21,6 +21,19 @@ class Message(BaseModel):
     tool_call_id: str | None = None
     name: str | None = None
     data: Any = None  # structured tool result (what a function-calling API would carry)
+    # Provider-native assistant content (e.g. thinking + tool_use blocks), echoed back
+    # unchanged by the live adapter that produced it. Ignored by scripted models.
+    provider_content: list[dict[str, Any]] | None = None
+
+    @classmethod
+    def assistant(cls, response: ModelResponse) -> Message:
+        """The assistant turn for ``response``, keeping provider-native blocks intact."""
+        return cls(
+            role="assistant",
+            content=response.content,
+            tool_calls=list(response.tool_calls),
+            provider_content=response.provider_content,
+        )
 
 
 class ModelRequest(BaseModel):
@@ -33,8 +46,10 @@ class ModelRequest(BaseModel):
 class ModelResponse(BaseModel):
     content: str = ""
     tool_calls: list[ToolCallRequest] = Field(default_factory=list)
-    stop_reason: Literal["tool_use", "end_turn"] = "end_turn"
+    stop_reason: Literal["tool_use", "end_turn", "max_tokens", "refusal", "other"] = "end_turn"
     usage: dict[str, int] = Field(default_factory=dict)
+    provider_content: list[dict[str, Any]] | None = None
+    served_by: str | None = None  # the model that actually answered (live adapters only)
 
 
 @runtime_checkable

@@ -52,7 +52,7 @@ class WeatherAgent:
     def run(self, rt: AgentRuntime, task: dict[str, Any]) -> AgentResult:
         messages = [Message(role="user", content=task["question"])]
         while True:
-            result = rt.complete(ModelRequest(model="weather-sim", messages=messages))
+            result = rt.complete(ModelRequest(model=rt.model_name, messages=messages))
             if not result.response.tool_calls:
                 return AgentResult(status="success", message=result.response.content)
             for call in result.response.tool_calls:

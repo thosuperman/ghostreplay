@@ -37,12 +37,27 @@ class AgentRuntime:
         model: ModelAdapter | None,
         sources: NondeterminismSource,
         agent_name: str,
+        model_name: str | None = None,
     ) -> None:
         self.session = session
         self.tools = tools
         self.model = model
         self.sources = sources
         self.agent_name = agent_name
+        self._model_name = model_name
+
+    @property
+    def model_name(self) -> str:
+        """Model id agents should put in ``ModelRequest.model``.
+
+        During offline replay there is no adapter, so the name comes from the recording's
+        provenance; this keeps replay of live-model recordings matching call for call.
+        """
+        if self._model_name:
+            return self._model_name
+        if self.model is not None:
+            return self.model.model
+        raise RuntimeError("no model adapter and no recorded model name")
 
     @property
     def clock(self):
@@ -56,7 +71,7 @@ class AgentRuntime:
         def invoke() -> dict[str, Any]:
             if model is None:
                 raise RuntimeError("no model adapter available (offline replay)")
-            return model.complete(request).model_dump(mode="json")
+            return model.complete(request).model_dump(mode="json", exclude_none=True)
 
         payload, event = self.session.interact(
             Operation(

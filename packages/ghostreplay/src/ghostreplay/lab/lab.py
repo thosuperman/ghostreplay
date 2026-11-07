@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field, computed_field
 from ..core.clock import DEFAULT_EPOCH, DeterministicSources, VirtualClock
 from ..core.errors import GhostReplayError, ReplayDivergenceError
 from ..diff import TraceDiff, diff_executions
+from ..llm import LiveModelConfig
+from ..mocking.model import ModelAdapter
 from ..models import (
     EventKind,
     EventSource,
@@ -34,6 +36,7 @@ from ..storage import SqliteStore
 from .scenario import Scenario
 
 CounterfactualMode = Literal["auto", "replay", "branch"]
+ModelChoice = Literal["scripted", "live"]
 
 
 class DemoStep(BaseModel):
@@ -76,11 +79,14 @@ class Lab:
         store: SqliteStore | None = None,
         *,
         redactor_factory: type[Redactor] = Redactor,
+        live: LiveModelConfig | None = None,
     ) -> None:
         self.app = app
         self.scenarios = {s.id: s for s in scenarios}
         self.store = store or SqliteStore(":memory:")
         self._redactor_factory = redactor_factory
+        # Optional live-LLM mode. ``None`` means offline demo mode only (scripted models).
+        self.live = live
 
     def scenario(self, scenario_id: str) -> Scenario:
         if scenario_id not in self.scenarios:
@@ -97,8 +103,13 @@ class Lab:
         faults: list[FaultSpec] | None = None,
         title: str = "",
         listeners: Iterable[EventListener] = (),
+        model: ModelChoice = "scripted",
     ) -> Execution:
-        """Run the agent live against a fresh simulated environment and record it."""
+        """Run the agent against a fresh simulated environment and record it.
+
+        ``model="live"`` drives the agent with the configured live LLM instead of the
+        scripted policy; tools are still simulated, so nothing real is ever changed.
+        """
         scenario = self.scenario(scenario_id)
         return self._execute(
             scenario,
@@ -108,6 +119,7 @@ class Lab:
             faults=faults or [],
             title=title,
             listeners=listeners,
+            model_choice=model,
         )
 
     def replay(
@@ -390,6 +402,38 @@ class Lab:
         return DemoStory(scenario=sc.id, app=self.app, title=sc.title, steps=steps, reports=reports)
 
     # ------------------------------------------------------------------------------------
+    def _model_for(
+        self,
+        scenario: Scenario,
+        mode: ExecutionMode,
+        reference: Execution | None,
+        model_choice: ModelChoice,
+    ) -> ModelAdapter | None:
+        """Pick the model adapter for an execution.
+
+        Offline modes get none at all. Runs derived from a recording keep the recording's
+        kind of model: a live recording can only be branched with the same live model, and
+        a scripted one never silently switches to a paid API.
+        """
+        if mode in OFFLINE_MODES:
+            return None
+        if reference is not None:
+            wants_live = reference.provenance.model_is_live
+            live_model = reference.provenance.model
+        else:
+            if model_choice not in ("scripted", "live"):
+                raise ValueError(f"unknown model choice {model_choice!r}")
+            wants_live = model_choice == "live"
+            live_model = None
+        if not wants_live:
+            return scenario.build_model()
+        if self.live is None:
+            raise ValueError(
+                "this run needs a live LLM, but live AI mode is not enabled "
+                "(set GHOSTREPLAY_LIVE=1 and provider credentials; see docs/live-ai.md)"
+            )
+        return self.live.build(model=live_model)
+
     def _execute(
         self,
         scenario: Scenario,
@@ -401,14 +445,28 @@ class Lab:
         faults: list[FaultSpec],
         title: str = "",
         listeners: Iterable[EventListener] = (),
+        model_choice: ModelChoice = "scripted",
     ) -> Execution:
         scenario.variant(variant)  # validate
         start = datetime.fromisoformat(reference.started_at) if reference else DEFAULT_EPOCH
         clock = VirtualClock(start)
         env = scenario.build_environment(conditions, clock)
         offline = mode in OFFLINE_MODES
-        model = scenario.build_model()
+        model = self._model_for(scenario, mode, reference, model_choice)
         agent = scenario.build_agent(variant)
+        if model is not None:
+            provenance = Provenance(
+                model_provider=model.provider,
+                model=model.model,
+                model_is_live=model.is_live,
+                label=model.label,
+                tool_backends="simulated (in-memory)",
+            )
+        else:
+            assert reference is not None
+            provenance = reference.provenance.model_copy(
+                update={"tool_backends": "none (served from recording)"}
+            )
         task = dict(reference.task) if reference else scenario.default_task()
         execution = Execution(
             id=f"{_MODE_PREFIX[mode]}_{uuid.uuid4().hex[:10]}",
@@ -419,15 +477,7 @@ class Lab:
             mode=mode,
             created_at=datetime.now(UTC).isoformat(),
             started_at=clock.now().isoformat(),
-            provenance=Provenance(
-                model_provider=model.provider,
-                model=model.model,
-                model_is_live=model.is_live,
-                label=model.label,
-                tool_backends="simulated (in-memory)"
-                if not offline
-                else "none (served from recording)",
-            ),
+            provenance=provenance,
             task=task,
             reference_execution_id=reference.id if reference else None,
             faults=list(faults),
@@ -441,9 +491,10 @@ class Lab:
         rt = AgentRuntime(
             session,
             tools=env.tools.offline_copy() if offline else env.tools,
-            model=None if offline else model,
+            model=model,
             sources=DeterministicSources(f"{scenario.id}:{variant}:{conditions}"),
             agent_name=agent.name,
+            model_name=provenance.model,
         )
         recorder.emit(
             EventKind.EXECUTION_START,

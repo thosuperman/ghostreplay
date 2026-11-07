@@ -112,12 +112,11 @@ class BankAgent:
         request_id = rt.new_id("req")
         rt.now()
         messages = [Message(role="user", content=task["message"])]
+        tools = [spec.schema() for spec in rt.tools.specs()]
         for _ in range(6):
-            result = rt.complete(ModelRequest(model="toy-model", messages=messages))
+            result = rt.complete(ModelRequest(model=rt.model_name, messages=messages, tools=tools))
             resp = result.response
-            messages.append(
-                Message(role="assistant", content=resp.content, tool_calls=resp.tool_calls)
-            )
+            messages.append(Message.assistant(resp))
             if not resp.tool_calls:
                 status = "success" if resp.content.startswith("Withdrew") else "escalated"
                 return AgentResult(

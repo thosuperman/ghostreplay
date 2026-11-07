@@ -12,7 +12,7 @@ from typing import Any
 from ghostreplay import AgentResult, AgentRuntime, RateLimited, ToolError, ToolTimeout
 from ghostreplay.mocking import Message, ModelRequest, ToolCallRequest
 
-from .model import MODEL_NAME, SYSTEM_PROMPT
+from .model import SYSTEM_PROMPT
 
 MAX_STEPS = 8
 MAX_REFUND_ATTEMPTS = 3
@@ -37,12 +37,12 @@ class SupportAgent:
         final = ""
         for _ in range(MAX_STEPS):
             result = rt.complete(
-                ModelRequest(model=MODEL_NAME, system=SYSTEM_PROMPT, messages=messages, tools=tools)
+                ModelRequest(
+                    model=rt.model_name, system=SYSTEM_PROMPT, messages=messages, tools=tools
+                )
             )
             resp = result.response
-            messages.append(
-                Message(role="assistant", content=resp.content, tool_calls=resp.tool_calls)
-            )
+            messages.append(Message.assistant(resp))
             if not resp.tool_calls:
                 final = resp.content
                 break
@@ -120,7 +120,7 @@ class SupportAgent:
         2. After an ambiguous timeout, reconcile with the gateway before retrying.
         3. Retries reuse the same key, so the gateway returns the original refund.
         """
-        key = f"refund:{task['ticket_id']}:{args['payment_id']}:{args['amount_cents']}"
+        key = f"refund:{task['ticket_id']}:{args.get('payment_id')}:{args.get('amount_cents')}"
         args = {**args, "idempotency_key": key}
         last: ToolError | None = None
         for attempt in range(1, MAX_REFUND_ATTEMPTS + 1):
@@ -140,7 +140,7 @@ class SupportAgent:
                 try:
                     ledger = rt.call_tool(
                         "payments.list_refunds",
-                        {"payment_id": args["payment_id"]},
+                        {"payment_id": args.get("payment_id")},
                         parent_event_id=parent,
                     )
                 except ToolError:
