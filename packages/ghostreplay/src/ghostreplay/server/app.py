@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import contextlib
+import copy
+import hashlib
 import json
 import queue
+import re
+import secrets
 import threading
 import time
 from collections.abc import Iterator
@@ -67,6 +71,13 @@ class RunCasesRequest(BaseModel):
 
 
 RUN_PATH_SUFFIXES = ("/replay/stream",)
+SESSION_COOKIE = "gr_session"
+_SESSION_RE = re.compile(r"^[A-Za-z0-9_-]{32,64}$")
+
+
+def session_owner(session_id: str) -> str:
+    """The owner key stored with a visitor's executions (the cookie itself is never stored)."""
+    return hashlib.sha256(session_id.encode()).hexdigest()[:32]
 
 
 def create_app(
@@ -81,7 +92,17 @@ def create_app(
         lab.live = None
     if settings.max_executions:
         lab.store.max_executions = settings.max_executions
-    app = FastAPI(title=title or f"GhostReplay Lab — {lab.app}", version=__version__)
+    if settings.isolate_sessions:
+        lab.store.owner_ttl_s = settings.session_ttl_s
+        lab.store.max_per_owner = settings.max_executions_per_session
+    docs = settings.expose_docs
+    app = FastAPI(
+        title=title or f"GhostReplay Lab — {lab.app}",
+        version=__version__,
+        docs_url="/docs" if docs else None,
+        redoc_url="/redoc" if docs else None,
+        openapi_url="/openapi.json" if docs else None,
+    )
     if settings.allow_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -105,6 +126,12 @@ def create_app(
 
     @app.middleware("http")
     async def limits(request: Request, call_next):
+        new_session: str | None = None
+        if settings.isolate_sessions:
+            sid = request.cookies.get(SESSION_COOKIE, "")
+            if not _SESSION_RE.fullmatch(sid):
+                sid = new_session = secrets.token_urlsafe(32)
+            request.state.owner = session_owner(sid)
         mutating = request.method in ("POST", "PUT", "PATCH", "DELETE")
         if mutating:
             length = request.headers.get("content-length")
@@ -125,7 +152,26 @@ def create_app(
                 )
         response = await call_next(request)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        if new_session is not None:
+            response.set_cookie(
+                SESSION_COOKIE,
+                new_session,
+                max_age=int(settings.session_ttl_s),
+                httponly=True,
+                secure=settings.cookie_secure,
+                samesite="lax",
+                path="/",
+            )
         return response
+
+    def lab_for(request: Request) -> Lab:
+        """The lab as seen by this request: scoped to the visitor's session when isolated."""
+        owner = getattr(request.state, "owner", None)
+        if owner is None:
+            return lab
+        scoped = copy.copy(lab)
+        scoped.store = lab.store.scoped(owner)
+        return scoped
 
     @contextlib.contextmanager
     def run_slot() -> Iterator[None]:
@@ -139,7 +185,7 @@ def create_app(
         finally:
             runs.release()
 
-    def get_execution(execution_id: str):
+    def get_execution(lab: Lab, execution_id: str):
         try:
             return lab.store.get(execution_id)
         except ExecutionNotFound as exc:
@@ -186,6 +232,10 @@ def create_app(
             "can_clear": settings.allow_clear,
             "live_model": live,
             "storage": "sqlite" if settings.public else lab.store.path,
+            "isolated_sessions": settings.isolate_sessions,
+            "session_ttl_hours": (
+                round(settings.session_ttl_s / 3600, 2) if settings.isolate_sessions else None
+            ),
         }
 
     @app.get("/api/scenarios")
@@ -197,25 +247,29 @@ def create_app(
         return [k.to_dict() for k in CATALOG.values()]
 
     @app.get("/api/executions")
-    def executions(scenario: str | None = None, limit: int = Query(100, ge=1, le=500)):
+    def executions(
+        request: Request, scenario: str | None = None, limit: int = Query(100, ge=1, le=500)
+    ):
+        lab = lab_for(request)
         return [
             s.model_dump(mode="json")
             for s in lab.store.list(app=lab.app, scenario=scenario, limit=limit)
         ]
 
     @app.get("/api/executions/{execution_id}")
-    def execution(execution_id: str) -> dict[str, Any]:
-        ex = get_execution(execution_id)
+    def execution(execution_id: str, request: Request) -> dict[str, Any]:
+        ex = get_execution(lab_for(request), execution_id)
         return {**ex.model_dump(mode="json"), "summary": ex.summary().model_dump(mode="json")}
 
     @app.delete("/api/executions")
-    def clear() -> dict[str, int]:
+    def clear(request: Request) -> dict[str, int]:
         if not settings.allow_clear:
             raise HTTPException(403, "clearing executions is disabled on this deployment")
-        return {"deleted": lab.store.delete_all(app=lab.app)}
+        return {"deleted": lab_for(request).store.delete_all(app=lab.app)}
 
     @app.post("/api/runs/record")
-    def record(req: RecordRequest) -> dict[str, Any]:
+    def record(req: RecordRequest, request: Request) -> dict[str, Any]:
+        lab = lab_for(request)
         ex = guarded(
             lab.record,
             req.scenario,
@@ -227,17 +281,19 @@ def create_app(
         return ex.summary().model_dump(mode="json")
 
     @app.post("/api/runs/replay")
-    def replay(req: ReplayRequest) -> dict[str, Any]:
+    def replay(req: ReplayRequest, request: Request) -> dict[str, Any]:
+        lab = lab_for(request)
         ex = guarded(lab.replay, req.execution_id)
-        ref = get_execution(req.execution_id)
+        ref = get_execution(lab, req.execution_id)
         return {
             "execution": ex.summary().model_dump(mode="json"),
             "diff": diff_executions(ref, ex).model_dump(mode="json"),
         }
 
     @app.post("/api/runs/counterfactual")
-    def counterfactual(req: CounterfactualRequest) -> dict[str, Any]:
-        ref = get_execution(req.execution_id)
+    def counterfactual(req: CounterfactualRequest, request: Request) -> dict[str, Any]:
+        lab = lab_for(request)
+        ref = get_execution(lab, req.execution_id)
         faults = list(req.faults)
         if req.preset:
             faults = guarded(lambda: lab.scenario(ref.scenario).preset(req.preset).faults) + faults
@@ -257,24 +313,29 @@ def create_app(
         }
 
     @app.get("/api/diff")
-    def diff(a: str, b: str) -> dict[str, Any]:
-        return guarded(lab.diff, a, b).model_dump(mode="json")
+    def diff(a: str, b: str, request: Request) -> dict[str, Any]:
+        return guarded(lab_for(request).diff, a, b).model_dump(mode="json")
 
     @app.post("/api/demo/prepare")
-    def demo(req: DemoRequest) -> dict[str, Any]:
-        return guarded(lab.prepare_demo, req.scenario, req.preset).model_dump(mode="json")
+    def demo(req: DemoRequest, request: Request) -> dict[str, Any]:
+        return guarded(lab_for(request).prepare_demo, req.scenario, req.preset).model_dump(
+            mode="json"
+        )
 
     @app.post("/api/regression/export")
-    def export(req: CaseFromExecution) -> dict[str, Any]:
-        return guarded(lab.export_case, req.execution_id, variant=req.variant, expect=req.expect)
+    def export(req: CaseFromExecution, request: Request) -> dict[str, Any]:
+        return guarded(
+            lab_for(request).export_case, req.execution_id, variant=req.variant, expect=req.expect
+        )
 
     @app.post("/api/regression/run")
-    def run_cases(req: RunCasesRequest) -> list[dict[str, Any]]:
+    def run_cases(req: RunCasesRequest, request: Request) -> list[dict[str, Any]]:
+        lab = lab_for(request)
         cases: list[RegressionCase] = []
         if req.case is not None:
             cases.append(req.case)
         if req.execution_id:
-            ex = get_execution(req.execution_id)
+            ex = get_execution(lab, req.execution_id)
             sc = guarded(lab.scenario, ex.scenario)
             variants = req.variants or [v.id for v in sc.variants]
             cases += [
@@ -285,13 +346,17 @@ def create_app(
         return [guarded(lab.run_case, c).model_dump(mode="json") for c in cases]
 
     @app.get("/api/executions/{execution_id}/replay/stream")
-    def replay_stream(execution_id: str, delay_ms: int = Query(220, ge=0, le=2000)):
+    def replay_stream(
+        execution_id: str, request: Request, delay_ms: int = Query(220, ge=0, le=2000)
+    ):
         """Server-Sent Events: each event is emitted as the replay engine records it.
 
         ``delay_ms`` slows the engine itself (the listener sleeps inside the replay thread),
         so the UI animation is paced by real engine activity, not a canned animation.
         """
-        ref = get_execution(execution_id)
+        lab = lab_for(request)
+        delay_ms = min(delay_ms, settings.max_stream_delay_ms)
+        ref = get_execution(lab, execution_id)
         if runs is not None and not runs.acquire(timeout=5):
             raise HTTPException(503, "the lab is busy running other executions; retry shortly")
         q: queue.Queue[tuple[str, Any] | None] = queue.Queue()

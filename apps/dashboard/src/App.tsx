@@ -14,6 +14,9 @@ import { Story } from "./views/Story";
 
 type Health = Record<LabId, "up" | "down" | "checking">;
 
+/** Show developer start commands only when the dashboard itself is served locally. */
+const IS_LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+
 function useLabHealth(): { health: Health; live: Partial<Record<LabId, LiveModelInfo | null>> } {
   const [health, setHealth] = useState<Health>({ support: "checking", devops: "checking" });
   const [live, setLive] = useState<Partial<Record<LabId, LiveModelInfo | null>>>({});
@@ -87,7 +90,13 @@ export function App() {
                     "flex items-center gap-2 rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors",
                     lab === id ? "bg-white/[0.09] text-white" : "text-ink-300 hover:text-white",
                   )}
-                  title={health[id] === "down" ? `${LABS[id].name} is offline — run: uv run ${id}-agent-lab serve` : LABS[id].name}
+                  title={
+                    health[id] !== "down"
+                      ? LABS[id].name
+                      : IS_LOCAL
+                        ? `${LABS[id].name} is offline — run: uv run ${id}-agent-lab serve`
+                        : `${LABS[id].name} is temporarily unavailable`
+                  }
                 >
                   <Dot tone={health[id] === "up" ? "green" : health[id] === "down" ? "red" : "neutral"} pulse={health[id] === "checking"} />
                   {LABS[id].name}
@@ -141,8 +150,14 @@ export function App() {
 
       {lab && health[lab] === "down" && (
         <div className="border-b border-amber-400/20 bg-amber-400/[0.06] px-5 py-2 text-center text-[13px] text-amber-200">
-          {LABS[lab].name} is not running. Start it with{" "}
-          <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs">uv run {lab}-agent-lab serve</code>
+          {IS_LOCAL ? (
+            <>
+              {LABS[lab].name} is not running. Start it with{" "}
+              <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs">uv run {lab}-agent-lab serve</code>
+            </>
+          ) : (
+            <>{LABS[lab].name} is temporarily unavailable. It restarts automatically; please retry in a moment.</>
+          )}
         </div>
       )}
 

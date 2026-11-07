@@ -8,7 +8,11 @@ profile meant for an internet-facing demo:
 * request bodies are capped;
 * clearing all executions is disabled (other visitors share the store);
 * live-LLM mode is disabled regardless of ``GHOSTREPLAY_LIVE``;
-* stored executions are capped per lab (oldest pruned).
+* stored executions are capped per lab (oldest pruned);
+* each visitor gets an anonymous session cookie and only ever sees the executions created
+  in that session; those executions expire after ``session_ttl_s``;
+* the replay stream's per-event delay is capped so one visitor cannot hold a run slot;
+* the interactive API docs (``/docs``, ``/openapi.json``) are not served.
 
 Nothing the API accepts can run commands or reach real services: tools are allowlisted
 in-memory simulations and request bodies are validated data.
@@ -46,6 +50,12 @@ class ServerSettings:
     allow_live: bool = True
     max_executions: int | None = None
     trust_forwarded_for: bool = False
+    isolate_sessions: bool = False
+    session_ttl_s: float = 24 * 3600
+    max_executions_per_session: int | None = None
+    cookie_secure: bool = False
+    max_stream_delay_ms: int = 2000
+    expose_docs: bool = True
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> ServerSettings:
@@ -64,8 +74,14 @@ class ServerSettings:
             max_concurrent_runs=int(env.get("GHOSTREPLAY_MAX_CONCURRENT_RUNS", 2)),
             allow_clear=False,
             allow_live=False,
-            max_executions=int(env.get("GHOSTREPLAY_MAX_EXECUTIONS", 400)),
+            max_executions=int(env.get("GHOSTREPLAY_MAX_EXECUTIONS", 2000)),
             trust_forwarded_for=_flag(env, "GHOSTREPLAY_TRUST_PROXY"),
+            isolate_sessions=env.get("GHOSTREPLAY_SESSION_ISOLATION", "1").strip() != "0",
+            session_ttl_s=float(env.get("GHOSTREPLAY_SESSION_TTL_HOURS", 24)) * 3600,
+            max_executions_per_session=int(env.get("GHOSTREPLAY_MAX_EXECUTIONS_PER_SESSION", 80)),
+            cookie_secure=not _flag(env, "GHOSTREPLAY_INSECURE_COOKIES"),
+            max_stream_delay_ms=int(env.get("GHOSTREPLAY_MAX_STREAM_DELAY_MS", 400)),
+            expose_docs=False,
         )
 
 

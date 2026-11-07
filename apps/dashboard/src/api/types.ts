@@ -344,6 +344,9 @@ export interface LabInfo {
   can_clear: boolean;
   live_model: LiveModelInfo | null;
   storage: string;
+  /** Public deployments: each browser session only sees the executions it created. */
+  isolated_sessions?: boolean;
+  session_ttl_hours?: number | null;
 }
 
 export interface LiveModelInfo {

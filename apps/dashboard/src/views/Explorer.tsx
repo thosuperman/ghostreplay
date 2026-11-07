@@ -65,7 +65,9 @@ export function Explorer({ lab }: { lab: LabId }) {
           </>
         }
       >
-        Every recorded, replayed and counterfactual execution stored by the lab, newest first.
+        {info.data?.isolated_sessions
+          ? `Every execution you recorded, replayed or mutated in this browser session, newest first. Runs are private to your session and are deleted after ${info.data.session_ttl_hours ?? 24} hours.`
+          : "Every recorded, replayed and counterfactual execution stored by the lab, newest first."}
       </SectionHeader>
 
       {sc && (
