@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 
 from ..core.errors import UnsafePathError
 from ..models import Execution
+from .parsing import parse_document
 
 MAX_TRACE_BYTES = 20 * 1024 * 1024
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]{0,120}$")
@@ -40,4 +40,4 @@ def import_execution(directory: str | Path, name: str) -> Execution:
     path = safe_join(directory, name)
     if path.stat().st_size > MAX_TRACE_BYTES:
         raise ValueError(f"trace {name} is larger than {MAX_TRACE_BYTES} bytes")
-    return Execution.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    return parse_document(Execution, path.read_bytes(), source=f"trace file {name}")

@@ -9,7 +9,7 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 from ..core.clock import DEFAULT_EPOCH, DeterministicSources, VirtualClock
 from ..core.errors import GhostReplayError, ReplayDivergenceError
@@ -42,7 +42,14 @@ class DemoStep(BaseModel):
     narrative: str
     execution_ids: list[str] = Field(default_factory=list)
     verdict: Literal["pass", "fail", "info", "diverged"] = "info"
+    # What the story needs this step to show; ``None`` for purely explanatory steps.
+    expected: Literal["pass", "fail"] | None = None
     data: dict[str, Any] = Field(default_factory=dict)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def as_expected(self) -> bool:
+        return self.expected is None or self.verdict == self.expected
 
 
 class DemoStory(BaseModel):
@@ -51,6 +58,12 @@ class DemoStory(BaseModel):
     title: str
     steps: list[DemoStep]
     reports: list[RegressionReport]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def ok(self) -> bool:
+        """True when every step produced the outcome the story depends on."""
+        return all(step.as_expected for step in self.steps)
 
 
 class Lab:
@@ -314,6 +327,7 @@ class Lab:
         steps = [
             DemoStep(
                 id="incident",
+                expected="fail",
                 title="1 · The incident",
                 narrative=sc.summary,
                 execution_ids=[incident.id],
@@ -322,6 +336,7 @@ class Lab:
             ),
             DemoStep(
                 id="replay",
+                expected="pass",
                 title="2 · Reproduce it offline",
                 narrative=(
                     "GhostReplay replays the recording without calling a single tool "
@@ -341,6 +356,7 @@ class Lab:
             ),
             DemoStep(
                 id="counterfactual",
+                expected="fail",
                 title="4 · Break a healthy run on purpose",
                 narrative=(
                     f"Starting from a healthy recording, the Failure Lab injects "
@@ -352,6 +368,7 @@ class Lab:
             ),
             DemoStep(
                 id="fix",
+                expected="pass",
                 title="5 · Apply the fix and run the same failure",
                 narrative=sc.fix_explanation,
                 execution_ids=[cf_vuln.id, cf_fixed.id],
@@ -360,6 +377,7 @@ class Lab:
             ),
             DemoStep(
                 id="prove",
+                expected="pass",
                 title="6 · Prove it with a regression test",
                 narrative=(
                     "The scenario becomes a pytest regression case. It FAILS on the "

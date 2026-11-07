@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 import threading
 from pathlib import Path
 
-from ..core.errors import ExecutionNotFound
+from ..core.errors import ExecutionNotFound, TraceFormatError
 from ..models import Execution, ExecutionSummary
+from .parsing import parse_document
+
+log = logging.getLogger(__name__)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS executions (
@@ -27,21 +31,31 @@ CREATE INDEX IF NOT EXISTS idx_exec_app_created ON executions(app, created_at);
 
 
 class SqliteStore:
-    """Thread-safe execution store. Use ``":memory:"`` for tests."""
+    """Thread-safe execution store. Use ``":memory:"`` for tests.
 
-    def __init__(self, path: str | Path = ":memory:") -> None:
+    ``max_executions`` caps how many executions are kept per app; the oldest are pruned on
+    save. Public deployments use it to bound disk usage.
+    """
+
+    def __init__(self, path: str | Path = ":memory:", *, max_executions: int | None = None) -> None:
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.path = str(path)
-        self._conn = sqlite3.connect(self.path, check_same_thread=False)
+        self.max_executions = max_executions
+        self._conn = sqlite3.connect(self.path, check_same_thread=False, timeout=10)
         self._lock = threading.Lock()
         with self._lock:
+            if self.path != ":memory:":
+                # WAL keeps readers and the writer from blocking each other and survives
+                # crashes mid-write without corrupting committed executions.
+                self._conn.execute("PRAGMA journal_mode=WAL")
+                self._conn.execute("PRAGMA synchronous=NORMAL")
             self._conn.executescript(_SCHEMA)
             self._conn.commit()
 
     def save(self, execution: Execution) -> None:
         summary = execution.summary()
-        with self._lock:
+        with self._lock, self._conn:  # one transaction: insert + prune
             self._conn.execute(
                 "INSERT OR REPLACE INTO executions VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (
@@ -57,7 +71,13 @@ class SqliteStore:
                     execution.model_dump_json(),
                 ),
             )
-            self._conn.commit()
+            if self.max_executions:
+                self._conn.execute(
+                    "DELETE FROM executions WHERE app = ? AND id NOT IN ("
+                    " SELECT id FROM executions WHERE app = ?"
+                    " ORDER BY created_at DESC, rowid DESC LIMIT ?)",
+                    (execution.app, execution.app, self.max_executions),
+                )
 
     def get(self, execution_id: str) -> Execution:
         with self._lock:
@@ -66,12 +86,13 @@ class SqliteStore:
             ).fetchone()
         if row is None:
             raise ExecutionNotFound(f"execution {execution_id!r} not found")
-        return Execution.model_validate_json(row[0])
+        return parse_document(Execution, row[0], source=f"stored execution {execution_id!r}")
 
     def list(
         self, *, app: str | None = None, scenario: str | None = None, limit: int = 200
     ) -> list[ExecutionSummary]:
-        sql = "SELECT summary_json FROM executions WHERE 1=1"
+        """Summaries, newest first. Unreadable rows are skipped (and logged), not fatal."""
+        sql = "SELECT id, summary_json FROM executions WHERE 1=1"
         params: list[object] = []
         if app:
             sql += " AND app = ?"
@@ -83,16 +104,35 @@ class SqliteStore:
         params.append(max(1, min(limit, 1000)))
         with self._lock:
             rows = self._conn.execute(sql, params).fetchall()
-        return [ExecutionSummary.model_validate_json(r[0]) for r in rows]
+        out: list[ExecutionSummary] = []
+        for execution_id, raw in rows:
+            try:
+                out.append(
+                    parse_document(ExecutionSummary, raw, source=f"summary of {execution_id!r}")
+                )
+            except TraceFormatError as exc:
+                log.warning("skipping unreadable execution row: %s", exc)
+        return out
+
+    def count(self, *, app: str | None = None) -> int:
+        with self._lock:
+            sql, params = "SELECT COUNT(*) FROM executions", ()
+            if app:
+                sql, params = sql + " WHERE app = ?", (app,)
+            return int(self._conn.execute(sql, params).fetchone()[0])
+
+    def ping(self) -> bool:
+        """Cheap health check used by ``/api/health``."""
+        with self._lock:
+            return self._conn.execute("SELECT 1").fetchone() == (1,)
 
     def delete_all(self, *, app: str | None = None) -> int:
-        with self._lock:
+        with self._lock, self._conn:
             cur = (
                 self._conn.execute("DELETE FROM executions WHERE app = ?", (app,))
                 if app
                 else self._conn.execute("DELETE FROM executions")
             )
-            self._conn.commit()
             return cur.rowcount
 
     def close(self) -> None:

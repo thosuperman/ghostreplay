@@ -129,3 +129,41 @@ def test_no_real_aws_access_possible():
 def test_demo_story(lab):
     story = lab.prepare_demo(SC)
     assert [s.verdict for s in story.steps] == ["fail", "pass", "info", "fail", "pass", "pass"]
+
+
+def test_destructive_action_replays_without_touching_the_cloud(lab, monkeypatch):
+    from ghostreplay.mocking.aws import MockAwsCloud
+
+    incident = lab.record(SC, "vulnerable", conditions=lab.scenario(SC).incident_conditions())
+    assert executed_destructive(incident), "the incident must contain the destructive call"
+
+    def forbidden(*_a, **_k):
+        raise AssertionError("cloud mutated during offline replay")
+
+    monkeypatch.setattr(MockAwsCloud, "terminate_instances", forbidden)
+    monkeypatch.setattr(MockAwsCloud, "rollback", forbidden)
+    rpl = lab.replay(incident.id)
+    assert rpl.status == ExecutionStatus.COMPLETED
+    assert diff_executions(incident, rpl).identical
+
+
+def test_offline_tool_registry_refuses_destructive_handlers():
+    from ghostreplay.core.clock import VirtualClock
+    from ghostreplay.core.errors import OfflineViolation
+
+    env = UnsafeInfraActionScenario().build_environment({}, VirtualClock())
+    offline = env.tools.offline_copy()
+    spec = offline.get("ec2.terminate_instances")
+    assert spec.destructive
+    with pytest.raises(OfflineViolation):
+        spec.handler(instance_ids=["i-0a1"])
+    # The live registry is untouched and still points at the in-memory simulation.
+    assert env.tools.get("ec2.terminate_instances").handler is not spec.handler
+
+
+def test_safety_gate_blocks_fleet_wide_termination_under_stale_health(lab):
+    ex = lab.record(SC, "fixed", conditions=lab.scenario(SC).incident_conditions())
+    guards = [e for e in ex.events if e.kind == EventKind.GUARD]
+    assert guards and guards[0].name == "blocked_destructive_action"
+    running = [i for i in ex.final_state["instances"] if i["state"] == "running"]
+    assert len(running) == 3

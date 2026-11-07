@@ -65,11 +65,16 @@ def lab_main(
         story = lab.prepare_demo(scenario.id)
         print(f"\n{story.title}\n" + "=" * len(story.title))
         for step in story.steps:
-            print(f"\n{step.title}  [{step.verdict.upper()}]\n  {step.narrative}")
+            flag = "" if step.as_expected else f"  <-- expected {str(step.expected).upper()}"
+            print(f"\n{step.title}  [{step.verdict.upper()}]{flag}\n  {step.narrative}")
             print(f"  executions: {', '.join(step.execution_ids)}")
         print()
         for rep in story.reports:
             print(rep.explain())
+        if not story.ok:
+            print("\nDEMO CHECK FAILED: at least one step did not produce its expected outcome.")
+            return 1
+        print("\nDemo check passed: every step produced its expected outcome.")
         return 0
 
     if args.cmd == "export-cases":

@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .events import SCHEMA_VERSION, Event, EventKind
 from .faults import FaultSpec
@@ -92,6 +92,32 @@ class Execution(BaseModel):
     divergence: Divergence | None = None
     notes: list[str] = Field(default_factory=list)
     title: str = ""
+
+    @model_validator(mode="after")
+    def _check_integrity(self) -> Execution:
+        """Reject documents that cannot be replayed faithfully.
+
+        Replay consumes recorded interactions strictly in ``seq`` order, so a recording whose
+        events are out of order, duplicated or from another schema version is refused here
+        rather than replayed in a silently different order.
+        """
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported schema_version {self.schema_version!r} (expected {SCHEMA_VERSION!r})"
+            )
+        seen: set[str] = set()
+        previous = -1
+        for event in self.events:
+            if event.seq <= previous:
+                raise ValueError(
+                    f"events out of order: seq {event.seq} ({event.kind.value} "
+                    f"'{event.name}') follows seq {previous}"
+                )
+            if event.event_id in seen:
+                raise ValueError(f"duplicate event_id {event.event_id!r}")
+            seen.add(event.event_id)
+            previous = event.seq
+        return self
 
     def interactions(self) -> list[Event]:
         return [e for e in self.events if e.is_interaction]

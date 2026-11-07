@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 from ..models import SCHEMA_VERSION, Divergence, Execution, FaultSpec, InvariantResult
+from ..storage.parsing import parse_document
 
 MAX_CASE_BYTES = 20 * 1024 * 1024
 
@@ -72,4 +72,4 @@ def load_case(path: str | Path) -> RegressionCase:
     p = Path(path)
     if p.stat().st_size > MAX_CASE_BYTES:
         raise ValueError(f"case file {p.name} exceeds {MAX_CASE_BYTES} bytes")
-    return RegressionCase.model_validate(json.loads(p.read_text(encoding="utf-8")))
+    return parse_document(RegressionCase, p.read_bytes(), source=f"case file {p.name}")

@@ -51,6 +51,11 @@ class UnsafePathError(GhostReplayError):
     """A file path escaped its permitted base directory."""
 
 
+class TraceFormatError(GhostReplayError, ValueError):
+    """Stored or imported data is not a valid GhostReplay document (bad JSON, wrong schema,
+    out-of-order events, ...). Raised instead of loading a partially valid recording."""
+
+
 # ---------------------------------------------------------------------------------------
 # Errors visible to agents
 # ---------------------------------------------------------------------------------------

@@ -18,6 +18,7 @@ from .core.errors import (
     ReplayDivergenceError,
     ToolError,
     ToolTimeout,
+    TraceFormatError,
 )
 from .models import (
     AgentResult,
@@ -57,6 +58,7 @@ __all__ = [
     "SystemClock",
     "ToolError",
     "ToolTimeout",
+    "TraceFormatError",
     "VirtualClock",
     "__version__",
 ]
