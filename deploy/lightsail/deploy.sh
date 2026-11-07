@@ -38,7 +38,9 @@ git archive --format=tar HEAD | tar -x -C "$stage"
 mkdir -p "$stage/dashboard"
 cp -R apps/dashboard/dist/. "$stage/dashboard/"
 tarball=$stage/../ghostreplay-$id.tar.gz
-tar -czf "$tarball" -C "$stage" .
+# No macOS extended attributes or AppleDouble files in the release.
+COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$tarball" -C "$stage" . 2>/dev/null \
+  || tar -czf "$tarball" -C "$stage" .
 log "release size $(du -h "$tarball" | cut -f1)"
 
 ip=$(gr_ip)

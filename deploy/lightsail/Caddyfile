@@ -3,6 +3,12 @@
 # The domain can be overridden with GHOSTREPLAY_DOMAIN in Caddy's environment.
 {
 	admin localhost:2019
+}
+
+{$GHOSTREPLAY_DOMAIN:ghostreplay.hayaix.tech} {
+	encode zstd gzip
+
+	# Access log (JSON, rotated). Caddy's own logs go to the journal.
 	log {
 		output file /var/log/caddy/access.log {
 			roll_size 20MiB
@@ -11,10 +17,6 @@
 		}
 		format json
 	}
-}
-
-{$GHOSTREPLAY_DOMAIN:ghostreplay.hayaix.tech} {
-	encode zstd gzip
 
 	header {
 		Strict-Transport-Security "max-age=31536000"

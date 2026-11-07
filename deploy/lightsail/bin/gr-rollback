@@ -5,7 +5,7 @@
 set -euo pipefail
 source /usr/local/lib/ghostreplay/gr-common.sh
 need_root
-current=$(readlink -f "$GR_CURRENT")
+current=$(readlink -e "$GR_CURRENT") || die "no active release"
 if [ $# -ge 1 ]; then
   [[ $1 =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid release id"
   target=$GR_RELEASES/$1

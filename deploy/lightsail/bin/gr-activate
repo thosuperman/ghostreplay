@@ -7,11 +7,14 @@ source /usr/local/lib/ghostreplay/gr-common.sh
 need_root
 rel=$(realpath -e "${1:?release dir}")
 [[ $rel == "$GR_RELEASES"/* ]] || die "$rel is not under $GR_RELEASES"
-prev=$(readlink -f "$GR_CURRENT" 2>/dev/null || true)
+prev=$(readlink -e "$GR_CURRENT" 2>/dev/null || true)
 
 install_config() {  # install_config <release-dir>
   local s=$1/deploy/lightsail f
-  caddy validate --adapter caddyfile --config "$s/Caddyfile" >/dev/null 2>&1 \
+  # Validate as the caddy user so any log files it opens are created with the right owner.
+  install -d -o caddy -g caddy -m 755 /var/log/caddy
+  chown -R caddy:caddy /var/log/caddy
+  runuser -u caddy -- caddy validate --adapter caddyfile --config "$s/Caddyfile" >/dev/null 2>&1 \
     || die "Caddyfile in $1 does not validate"
   install -m 644 "$s/Caddyfile" /etc/caddy/Caddyfile
   install -m 644 "$s"/systemd/*.service "$s"/systemd/*.timer /etc/systemd/system/
@@ -29,12 +32,12 @@ switch_to() {  # switch_to <release-dir>   (atomic symlink swap)
   mv -T "$GR_ROOT/.current.tmp" "$GR_CURRENT"
 }
 
-restart_all() {
+restart_all() {  # explicit error checks: `set -e` does not apply inside `if` conditions
   systemctl enable --quiet ghostreplay-support ghostreplay-devops \
-    ghostreplay-backup.timer ghostreplay-monitor.timer caddy
-  systemctl restart ghostreplay-support ghostreplay-devops
-  systemctl start ghostreplay-backup.timer ghostreplay-monitor.timer
-  systemctl reload-or-restart caddy
+    ghostreplay-backup.timer ghostreplay-monitor.timer caddy || return 1
+  systemctl restart ghostreplay-support ghostreplay-devops || return 1
+  systemctl start ghostreplay-backup.timer ghostreplay-monitor.timer || return 1
+  systemctl reload-or-restart caddy || return 1
 }
 
 if [ -n "$prev" ]; then
@@ -44,19 +47,17 @@ fi
 log "activating $(basename "$rel")${prev:+ (previous: $(basename "$prev"))}"
 install_config "$rel"
 switch_to "$rel"
-restart_all
 
-if wait_healthy 45; then
+if restart_all && wait_healthy 45; then
   log "both labs healthy on $(basename "$rel")"
 else
   log "health check failed for $(basename "$rel")"
-  journalctl -u ghostreplay-support -u ghostreplay-devops -n 30 --no-pager >&2 || true
+  journalctl -u ghostreplay-support -u ghostreplay-devops -u caddy -n 30 --no-pager >&2 || true
   if [ -n "$prev" ] && [ "$prev" != "$rel" ]; then
     log "rolling back to $(basename "$prev")"
     install_config "$prev"
     switch_to "$prev"
-    restart_all
-    if wait_healthy 45; then log "rollback healthy"; else log "rollback ALSO unhealthy"; fi
+    if restart_all && wait_healthy 45; then log "rollback healthy"; else log "rollback ALSO unhealthy"; fi
   fi
   exit 1
 fi
