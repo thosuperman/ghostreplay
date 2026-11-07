@@ -1,0 +1,28 @@
+# Local full stack in one container: http://127.0.0.1:8100
+#   docker compose up --build
+services:
+  ghostreplay:
+    build: .
+    image: ghostreplay-lab:local
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      # Uncomment to rehearse the public deployment profile locally.
+      # GHOSTREPLAY_PUBLIC: "1"
+      GHOSTREPLAY_LIVE: ${GHOSTREPLAY_LIVE:-0}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ghostreplay-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+volumes:
+  ghostreplay-data:

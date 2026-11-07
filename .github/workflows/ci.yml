@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.13.7"
+  NODE_VERSION: "24"
+
+jobs:
+  python:
+    name: Python — lint, tests, demos, regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (locked)
+        run: uv sync --locked --all-extras
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+      - name: Unit, integration and regression tests
+        run: uv run pytest --junitxml=reports/pytest.xml
+      - name: Demo — Duplicate Refund (fails on unexpected outcome)
+        run: uv run support-agent-lab --db "$RUNNER_TEMP/demo" demo
+      - name: Demo — Unsafe Infrastructure Action (fails on unexpected outcome)
+        run: uv run devops-agent-lab --db "$RUNNER_TEMP/demo" demo
+      - name: Committed regression cases
+        run: >
+          uv run ghostreplay test tests/regression
+          --junit reports/regression-committed.xml --json reports/regression-committed.json
+      - name: Freshly generated regression cases
+        run: |
+          uv run support-agent-lab --db "$RUNNER_TEMP/export" export-cases --out "$RUNNER_TEMP/cases"
+          uv run devops-agent-lab --db "$RUNNER_TEMP/export" export-cases --out "$RUNNER_TEMP/cases"
+          uv run ghostreplay test "$RUNNER_TEMP/cases" --junit reports/regression-fresh.xml
+          uv run pytest "$RUNNER_TEMP/cases" -q
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-reports
+          path: reports/
+
+  dashboard:
+    name: Dashboard — typecheck and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable
+      - name: Resolve pnpm store
+        id: pnpm
+        run: echo "store=$(corepack pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm.outputs.store }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm --dir apps/dashboard typecheck
+      - run: corepack pnpm --dir apps/dashboard build
+
+  e2e:
+    name: End-to-end (Playwright)
+    needs: [python, dashboard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable
+      - run: uv sync --locked
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Install Chromium for Playwright
+        run: corepack pnpm --dir apps/dashboard exec playwright install --with-deps chromium
+      - name: Run browser tests against the gateway (both labs + built dashboard)
+        run: corepack pnpm --dir apps/dashboard e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/dashboard/playwright-report/
+
+  docker:
+    name: Container — build and smoke test
+    needs: [python, dashboard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t ghostreplay-lab:ci .
+      - name: Start container in the public profile
+        run: docker run -d --name gr -p 8100:8100 -e GHOSTREPLAY_PUBLIC=1 ghostreplay-lab:ci
+      - name: Health and demo smoke test
+        run: |
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8100/api/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8100/ | grep -q '<div id="root">'
+          for lab in support:duplicate-refund devops:unsafe-infra-action; do
+            curl -fsS -X POST "http://127.0.0.1:8100/lab/${lab%%:*}/api/demo/prepare" \
+              -H 'content-type: application/json' -d "{\"scenario\":\"${lab##*:}\"}" \
+              | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"], d; print("demo ok")'
+          done
+      - name: Container logs
+        if: always()
+        run: docker logs gr || true

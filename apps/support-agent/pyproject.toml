@@ -11,6 +11,9 @@ support-agent-lab = "support_agent.cli:main"
 [project.entry-points."ghostreplay.scenarios"]
 duplicate-refund = "support_agent.scenario:DuplicateRefundScenario"
 
+[project.entry-points."ghostreplay.labs"]
+support = "support_agent.cli:build_lab"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import queue
 import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .. import __version__
@@ -20,6 +22,7 @@ from ..diff import diff_executions
 from ..models import Event, FaultSpec
 from ..mutation import CATALOG
 from ..regression.cases import RegressionCase
+from .settings import RateLimiter, ServerSettings
 
 if TYPE_CHECKING:
     from ..lab import Lab
@@ -30,6 +33,7 @@ class RecordRequest(BaseModel):
     variant: str
     conditions: dict[str, str] = Field(default_factory=dict)
     title: str = Field(default="", max_length=200)
+    model: Literal["scripted", "live"] = "scripted"
 
 
 class CounterfactualRequest(BaseModel):
@@ -62,21 +66,78 @@ class RunCasesRequest(BaseModel):
     case: RegressionCase | None = None
 
 
-LOCAL_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
-]
+RUN_PATH_SUFFIXES = ("/replay/stream",)
 
 
 def create_app(
-    lab: Lab, *, dashboard_dir: str | Path | None = None, title: str | None = None
+    lab: Lab,
+    *,
+    dashboard_dir: str | Path | None = None,
+    title: str | None = None,
+    settings: ServerSettings | None = None,
 ) -> FastAPI:
+    settings = settings or ServerSettings()
+    if not settings.allow_live:
+        lab.live = None
+    if settings.max_executions:
+        lab.store.max_executions = settings.max_executions
     app = FastAPI(title=title or f"GhostReplay Lab — {lab.app}", version=__version__)
-    app.add_middleware(
-        CORSMiddleware, allow_origins=LOCAL_ORIGINS, allow_methods=["*"], allow_headers=["*"]
+    if settings.allow_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(settings.allow_origins),
+            allow_methods=["GET", "POST", "DELETE"],
+            allow_headers=["Content-Type"],
+        )
+    limiter = RateLimiter(settings.rate_limit_per_minute)
+    runs = (
+        threading.BoundedSemaphore(settings.max_concurrent_runs)
+        if settings.max_concurrent_runs
+        else None
     )
+
+    def client_key(request: Request) -> str:
+        if settings.trust_forwarded_for:
+            fwd = request.headers.get("x-forwarded-for", "")
+            if fwd:
+                return fwd.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
+    @app.middleware("http")
+    async def limits(request: Request, call_next):
+        mutating = request.method in ("POST", "PUT", "PATCH", "DELETE")
+        if mutating:
+            length = request.headers.get("content-length")
+            if length is None and settings.public and request.method != "DELETE":
+                return JSONResponse({"detail": "Content-Length required"}, status_code=411)
+            if length is not None and int(length) > settings.max_body_bytes:
+                return JSONResponse(
+                    {"detail": f"request body exceeds {settings.max_body_bytes} bytes"},
+                    status_code=413,
+                )
+        if mutating or request.url.path.endswith(RUN_PATH_SUFFIXES):
+            ok, retry = limiter.allow(client_key(request))
+            if not ok:
+                return JSONResponse(
+                    {"detail": "rate limit exceeded; try again shortly"},
+                    status_code=429,
+                    headers={"Retry-After": str(max(1, int(retry)))},
+                )
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        return response
+
+    @contextlib.contextmanager
+    def run_slot() -> Iterator[None]:
+        if runs is None:
+            yield
+            return
+        if not runs.acquire(timeout=5):
+            raise HTTPException(503, "the lab is busy running other executions; retry shortly")
+        try:
+            yield
+        finally:
+            runs.release()
 
     def get_execution(execution_id: str):
         try:
@@ -86,21 +147,45 @@ def create_app(
 
     def guarded(fn, *args: Any, **kwargs: Any):
         try:
-            return fn(*args, **kwargs)
+            with run_slot():
+                return fn(*args, **kwargs)
         except ExecutionNotFound as exc:
             raise HTTPException(404, str(exc)) from None
         except (ValueError, GhostReplayError) as exc:
             raise HTTPException(400, str(exc)) from None
 
+    @app.get("/healthz", include_in_schema=False)
+    def healthz() -> dict[str, str]:
+        """Liveness: the process is up."""
+        return {"status": "ok"}
+
+    @app.get("/api/health")
+    def health() -> dict[str, Any]:
+        """Readiness: the store answers queries."""
+        try:
+            ok = lab.store.ping()
+        except Exception as exc:  # report, don't crash the probe
+            raise HTTPException(503, f"store unavailable: {type(exc).__name__}") from None
+        return {
+            "status": "ok" if ok else "degraded",
+            "app": lab.app,
+            "version": __version__,
+            "executions": lab.store.count(app=lab.app),
+        }
+
     @app.get("/api/info")
     def info() -> dict[str, Any]:
+        live = lab.live.describe() if lab.live is not None else None
         return {
             "app": lab.app,
             "version": __version__,
             "schema_version": "ghostreplay/v1",
             "scenarios": [{"id": s.id, "title": s.title} for s in lab.scenarios.values()],
             "offline": True,
-            "storage": lab.store.path,
+            "public": settings.public,
+            "can_clear": settings.allow_clear,
+            "live_model": live,
+            "storage": "sqlite" if settings.public else lab.store.path,
         }
 
     @app.get("/api/scenarios")
@@ -125,6 +210,8 @@ def create_app(
 
     @app.delete("/api/executions")
     def clear() -> dict[str, int]:
+        if not settings.allow_clear:
+            raise HTTPException(403, "clearing executions is disabled on this deployment")
         return {"deleted": lab.store.delete_all(app=lab.app)}
 
     @app.post("/api/runs/record")
@@ -134,7 +221,8 @@ def create_app(
             req.scenario,
             req.variant,
             conditions=req.conditions,
-            title=req.title or f"Recorded run ({req.variant})",
+            title=req.title or f"Recorded run ({req.variant}, {req.model} model)",
+            model=req.model,
         )
         return ex.summary().model_dump(mode="json")
 
@@ -204,6 +292,8 @@ def create_app(
         so the UI animation is paced by real engine activity, not a canned animation.
         """
         ref = get_execution(execution_id)
+        if runs is not None and not runs.acquire(timeout=5):
+            raise HTTPException(503, "the lab is busy running other executions; retry shortly")
         q: queue.Queue[tuple[str, Any] | None] = queue.Queue()
 
         def listener(ev: Event) -> None:
@@ -227,6 +317,8 @@ def create_app(
             except Exception as exc:  # report to the client instead of hanging the stream
                 q.put(("error", {"message": f"{type(exc).__name__}: {exc}"}))
             finally:
+                if runs is not None:
+                    runs.release()
                 q.put(None)
 
         threading.Thread(target=worker, daemon=True).start()

@@ -11,6 +11,9 @@ devops-agent-lab = "devops_agent.cli:main"
 [project.entry-points."ghostreplay.scenarios"]
 unsafe-infra-action = "devops_agent.scenario:UnsafeInfraActionScenario"
 
+[project.entry-points."ghostreplay.labs"]
+devops = "devops_agent.cli:build_lab"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

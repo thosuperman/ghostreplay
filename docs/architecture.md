@@ -107,3 +107,31 @@ offline guard (`test_offline_guard_*`, `test_agent_network_access_during_replay_
 handler stubs in replay (`test_replay_never_invokes_tool_handlers_or_model`), allowlisted tools
 (`test_tool_registry_is_an_allowlist_with_validation`), path confinement
 (`test_safe_join_rejects_traversal`), data-only trace import (`test_trace_export_import_roundtrip_validates`).
+
+## Recording integrity
+
+`Execution` validates itself on every load: the schema version must be `ghostreplay/v1`,
+event `seq` numbers must strictly increase, and event ids must be unique. Trace files,
+case files and database rows that fail validation raise `TraceFormatError` with the source
+and the first problems (`storage/parsing.py`). Nothing is loaded partially.
+
+## Models: scripted and live
+
+`Lab._model_for` picks the adapter per execution:
+
+| Execution | Adapter |
+|---|---|
+| `replay`, `counterfactual-replay` | none (responses come from the recording) |
+| `record` | scenario's `ScriptedModel`, or the live adapter when `model="live"` |
+| `branch` | the same kind as the reference: scripted stays scripted; live needs live mode |
+
+Agents put `rt.model_name` in their requests, so a live recording replays call for call.
+See [live-ai.md](live-ai.md).
+
+## Serving
+
+`create_app(lab, settings=...)` builds one lab's API. `ghostreplay serve` (the gateway)
+discovers labs through the `ghostreplay.labs` entry point, mounts each at `/lab/<name>`,
+and serves the dashboard build at `/`. `ServerSettings.from_env()` switches on the public
+profile (rate limiting, concurrency cap, body cap, retention, no clearing, no live mode).
+See [deployment.md](deployment.md).

@@ -1,0 +1,24 @@
+# Render Blueprint: one Docker web service running both labs and the dashboard.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: ghostreplay-lab
+    runtime: docker
+    plan: starter
+    autoDeploy: false
+    healthCheckPath: /api/health
+    envVars:
+      - key: GHOSTREPLAY_PUBLIC
+        value: "1"
+      - key: GHOSTREPLAY_TRUST_PROXY
+        value: "1"
+      - key: GHOSTREPLAY_RATE_LIMIT_PER_MINUTE
+        value: "30"
+      - key: GHOSTREPLAY_MAX_CONCURRENT_RUNS
+        value: "2"
+      - key: GHOSTREPLAY_MAX_EXECUTIONS
+        value: "400"
+    disk:
+      name: ghostreplay-data
+      mountPath: /data
+      sizeGB: 1

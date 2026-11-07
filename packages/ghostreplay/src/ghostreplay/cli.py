@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -14,11 +15,31 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ghostreplay", description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("scenarios", help="list registered scenarios")
+    g = sub.add_parser("serve", help="serve every installed lab and the dashboard on one port")
+    g.add_argument("--host", default="127.0.0.1")
+    g.add_argument("--port", type=int, default=8100)
+    g.add_argument("--db", default=os.environ.get("GHOSTREPLAY_DB_DIR", ".ghostreplay"))
+    g.add_argument(
+        "--dashboard",
+        type=Path,
+        default=Path(os.environ.get("GHOSTREPLAY_DASHBOARD_DIR", "apps/dashboard/dist")),
+        help="built dashboard directory (served at /) ",
+    )
     t = sub.add_parser("test", help="run regression case files")
     t.add_argument("cases", nargs="+", type=Path, help="*.case.json files or directories")
     t.add_argument("--json", type=Path, help="write a JSON report")
     t.add_argument("--junit", type=Path, help="write a JUnit XML report")
     args = parser.parse_args(argv)
+
+    if args.cmd == "serve":
+        import uvicorn
+
+        from .server.gateway import create_gateway
+
+        app = create_gateway(db_dir=args.db, dashboard_dir=args.dashboard)
+        print(f"ghostreplay: labs and dashboard on http://{args.host}:{args.port}/")
+        uvicorn.run(app, host=args.host, port=args.port, log_level="warning", proxy_headers=True)
+        return 0
 
     if args.cmd == "scenarios":
         for sid, sc in sorted(available().items()):

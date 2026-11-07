@@ -1,31 +1,65 @@
 <p align="center">
-  <img src="apps/dashboard/public/ghost.svg" width="72" alt="" />
+  <img src="docs/assets/banner.png" alt="GhostReplay Lab — Break AI agents safely. Replay failures. Prove the fix." width="100%" />
 </p>
 
-<h1 align="center">GhostReplay Lab</h1>
-<p align="center"><b>Break AI agents safely. Replay failures. Prove the fix.</b></p>
+<p align="center">
+  <a href="https://github.com/thosuperman/ghost-replay/actions/workflows/ci.yml"><img src="https://github.com/thosuperman/ghost-replay/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <img src="https://img.shields.io/badge/python-3.12%2B-3776ab" alt="Python 3.12+" />
+  <img src="https://img.shields.io/badge/license-MIT-a78bfa" alt="MIT license" />
+  <img src="https://img.shields.io/badge/runs-offline-22d3ee" alt="Runs offline" />
+</p>
 
-GhostReplay is an open-source **deterministic replay and failure-testing framework for
-tool-using AI agents**, plus a visual lab to drive it. It records what an agent actually did,
-replays it offline without touching a single service, injects the failures that happen in
-production (timeouts after commit, 429s, stale data, permission errors…), flags dangerous
-behaviour with safety invariants, and turns the scenario into a pytest regression that proves
-the fix.
+**GhostReplay is an open-source deterministic replay and failure-testing framework for
+tool-using AI agents.** It records what an agent actually did and replays it offline
+without touching a single service. It injects the failures that happen in production
+(timeouts after commit, 429s, stale data, permission errors), flags dangerous behaviour
+with safety invariants, and turns the scenario into a pytest regression that proves the
+fix.
 
 ```
  Record ──▶ Replay offline ──▶ Inject a failure ──▶ Detect unsafe behaviour ──▶ Fix ──▶ Prove (pytest)
 ```
 
-Two independent applications are built on the same framework:
+<p align="center">
+  <img src="docs/assets/screenshots/story-duplicate-refund.png" alt="Guided Duplicate Refund demo: incident fails, offline replay is identical, the fixed agent passes" width="100%" />
+</p>
 
-| App | Scenario | What goes wrong | The fix |
-|---|---|---|---|
-| **Support Agent Lab** (`apps/support-agent`) | Duplicate Refund | The payment gateway commits a refund, the response times out, the agent retries and refunds the customer twice. | Intent-scoped idempotency key + reconciliation before retry. |
-| **DevOps Agent Lab** (`apps/devops-agent`) | Unsafe Infrastructure Action | A stale health view reports healthy instances as impaired; the agent terminates the whole fleet during a bad deploy. | A SafetyGate: independent verification, IAM check, blast-radius budget, human approval. |
+## Two applications, one framework
 
-Everything runs locally and offline. No API keys, no cloud account, no paid model.
+| | **Support Agent Lab** — `apps/support-agent` | **DevOps Agent Lab** — `apps/devops-agent` |
+|---|---|---|
+| Demo | **Try the Duplicate Refund Demo** | **Try the Unsafe AWS Operation Demo** |
+| What goes wrong | The payment gateway commits a $129 refund, the response times out, the agent retries, and the customer is refunded $258. | A stale health view reports three healthy instances as impaired, and the agent terminates the whole fleet during a bad deploy. |
+| Detected by | `refund.no_duplicate`, `refund.retries_are_idempotent`, `reply.matches_ledger` | `infra.no_unverified_destructive_action`, `infra.capacity_preserved`, `infra.destructive_requires_approval` |
+| The fix | Intent-scoped idempotency key + reconciliation before retry | `SafetyGate`: direct verification, IAM check, blast-radius budget, human approval |
+| Backends | simulated payments gateway, orders DB, CRM | simulated AWS-like EC2, CloudWatch, IAM, Lambda, deploys |
 
----
+Both apps run on their own, with their own port, CLI, scenario and tests. Everything they
+share (recording, replay, mocking, faults, diffing, regression, storage, HTTP API) lives in
+`packages/ghostreplay`. Everything runs locally and offline, with no API keys, no cloud
+account and no paid model.
+
+## Features
+
+- **Deterministic offline replay.** Model calls, tool calls, clock reads, ids and random
+  numbers are served from the recording in strict order. Tool handlers are swapped for
+  stubs that raise, and sockets are blocked on the replaying thread.
+- **Divergence detection.** A changed call, changed arguments, a missing recording or an
+  unreached step is reported at the exact step with a field-level diff. Recorded responses
+  are never consumed out of order, and replay never guesses a continuation.
+- **Counterfactual Failure Lab.** 13 fault kinds can be injected at any recorded step.
+  Faults that need a real side effect (*timeout after commit*) run as clearly labelled
+  **branch** executions against a fresh simulated environment.
+- **Safety invariants** with passed / failed / inconclusive results, evidence events and
+  explanations.
+- **Regression generation.** Any scenario becomes a JSON case plus a pytest module, with
+  JUnit XML and JSON reports for CI.
+- **Structural diff** of any two executions: aligned interactions, first divergence, and a
+  behavioural summary.
+- **Dashboard.** Guided demos, execution explorer, timeline and inspector, live replay
+  streaming, Failure Lab, diff and regression views.
+- **Optional live AI mode.** Drive the agents with a real LLM (Anthropic), record it, then
+  replay it offline for free. See [docs/live-ai.md](docs/live-ai.md).
 
 ## Quick start
 
@@ -36,9 +70,31 @@ git clone https://github.com/thosuperman/ghost-replay.git && cd ghost-replay
 ./scripts/dev.sh
 ```
 
-Open **http://127.0.0.1:5173** and click **Try the Duplicate Refund Demo**.
+Open **http://127.0.0.1:5173** and click **Try the Duplicate Refund Demo** or **Try the
+Unsafe AWS Operation Demo**. Each click records, replays, breaks, fixes and proves the
+scenario with real executions.
 
-Or start the pieces yourself, each in its own terminal:
+With Docker (both labs and the dashboard on one port):
+
+```bash
+docker compose up --build
+```
+
+Then open http://127.0.0.1:8100.
+
+No browser? Each app tells the whole story in the terminal and exits non-zero if any step
+does not produce its expected outcome:
+
+```bash
+uv run support-agent-lab demo
+```
+
+```bash
+uv run devops-agent-lab demo
+```
+
+<details>
+<summary>Start the pieces separately</summary>
 
 ```bash
 uv sync
@@ -56,89 +112,81 @@ uv run devops-agent-lab serve       # API on :8102
 corepack pnpm install && corepack pnpm --dir apps/dashboard dev   # dashboard on :5173
 ```
 
-No browser? Each app tells the whole story in the terminal with real executions:
+</details>
 
-```bash
-uv run support-agent-lab demo
-```
+## Screens
 
-```bash
-uv run devops-agent-lab demo
-```
-
-### Tests
-
-```bash
-uv run pytest                      # framework guarantees, both apps, generated regressions, example
-```
-
-```bash
-uv run ghostreplay test tests/regression --junit reports/junit.xml --json reports/report.json
-```
-
-```bash
-uv run ruff check . && corepack pnpm --dir apps/dashboard build
-```
-
----
+| | |
+|---|---|
+| ![Execution timeline and inspector](docs/assets/screenshots/timeline.png) | ![Failure Lab injecting timeout after commit](docs/assets/screenshots/failure-lab.png) |
+| **Timeline + inspector**: every event with its source, request, response and state | **Failure Lab**: pick a step and a fault, run it against either agent variant |
+| ![Side-by-side diff](docs/assets/screenshots/diff.png) | ![Regression results](docs/assets/screenshots/regression.png) |
+| **Diff**: first divergence and field-level changes | **Regression**: FAIL on the vulnerable agent, PASS on the fixed one |
 
 ## How it works
 
-### One door between the agent and the world
+<p align="center"><img src="docs/assets/architecture.png" alt="Architecture diagram" width="100%" /></p>
 
 Agents written for GhostReplay reach the outside world only through `AgentRuntime`:
 
 ```python
-result = rt.complete(ModelRequest(model="support-sim-1", messages=messages, tools=tools))
-refund = rt.call_tool("payments.create_refund", {"payment_id": "pay_3KQ81", "amount_cents": 12900, ...})
+result = rt.complete(ModelRequest(model=rt.model_name, messages=messages, tools=tools))
+refund = rt.call_tool("payments.create_refund", {"payment_id": "pay_3KQ81", "amount_cents": 12900})
 key    = rt.new_id("idem");  now = rt.now()
 ```
 
-Every call goes through a single `Session.interact`, which — depending on the mode — executes
-it, serves it from the recording, or injects a fault, and records exactly one event that says
-**where its response came from**:
+Every call goes through a single `Session.interact`. Depending on the mode, it executes the
+call, serves it from the recording, or injects a fault, and records exactly one event that
+says **where its response came from**:
 
 | Event source | Meaning |
 |---|---|
-| `live` | executed by the real implementation (here: a simulated backend) while recording |
+| `live` | executed by the implementation (here, a simulated backend) while recording |
 | `recorded` | served from the recording; nothing was executed |
-| `injected` | produced or altered by fault injection (original response kept on the event) |
+| `injected` | produced or altered by fault injection (the original response is kept on the event) |
 | `simulated` | re-executed against a fresh simulated backend in branch mode |
 
 | Execution mode | Meaning |
 |---|---|
-| `record` | live run, recorded |
-| `replay` | deterministic offline replay — tool handlers replaced by stubs that raise, sockets blocked on the replay thread |
-| `counterfactual-replay` | offline replay with faults; **stops at the first divergence** instead of guessing what the agent would do next |
-| `branch` | replayed prefix, then real re-execution against a fresh simulated environment (needed for faults like *timeout after commit*) |
+| `record` | run and record |
+| `replay` | deterministic offline replay |
+| `counterfactual-replay` | offline replay with faults; **stops at the first divergence** |
+| `branch` | replayed prefix, then real re-execution against a fresh simulated environment |
 
-Divergence is detected by kind, name and a hash of the redacted request. A mismatch is
-recorded as a `divergence` event with a field-level diff; recorded responses are never consumed
-out of order.
+The [record/replay sequence diagram](docs/assets/record-replay-sequence.png),
+[docs/architecture.md](docs/architecture.md) and [docs/diagrams.md](docs/diagrams.md) go deeper.
 
-### Framework modules (`packages/ghostreplay/src/ghostreplay`)
+### Replay guarantees
 
-| Module | Responsibility |
-|---|---|
-| `models/` | versioned schema (`ghostreplay/v1`): `Event`, `Execution`, `FaultSpec`, results |
-| `recorder/` | `Recorder` (sequenced events, listeners) and `Redactor` (keys, AWS keys, bearer tokens, `sk-` keys, Luhn-valid cards) |
-| `runtime.py` | `AgentRuntime` — model, tools, clock, ids, randomness, step/guard annotations |
-| `replay/` | `Session` (record / replay / counterfactual / branch) and the thread-local offline network guard |
-| `mocking/` | allowlisted `ToolRegistry`, simulated HTTP service, database and AWS-like cloud, `ModelAdapter` + `ScriptedModel` |
-| `mutation/` | fault catalog (13 kinds) and fault application |
-| `diff/` | structural trace diff with first-divergence detection and behavioural summary |
-| `regression/` | invariants, regression cases, runner, pytest generation, JSON + JUnit reports |
-| `lab/` | `Scenario` abstraction, scenario registry (entry points), `Lab` orchestrator, guided demo |
-| `storage/` | SQLite store, safe trace import/export |
-| `server/` | FastAPI app factory (incl. Server-Sent-Events replay stream) and the shared lab CLI |
+Each guarantee below is covered by tests in `packages/ghostreplay/tests` and `apps/*/tests`.
 
-Deeper dive: [docs/architecture.md](docs/architecture.md).
+- A replay of an unmodified recording is structurally identical to it: same kinds, names,
+  requests, responses, errors, timestamps, durations and state.
+- No tool handler, model adapter or socket is used during offline replay. An attempt is
+  recorded and fails the run.
+- Interactions are matched in strict order by kind, name and a hash of the redacted request.
+  An unexpected, missing, reordered or changed call produces a divergence; it is never
+  silently skipped.
+- Recordings that are out of order, have duplicate ids, are from another schema version, or
+  are otherwise malformed are rejected on load with a specific `TraceFormatError`.
+- Strict counterfactual replay never invents behaviour after a divergence. Continuations
+  only happen in labelled branch executions.
 
-### Integrating your own agent
+### Limitations
 
-[`examples/minimal_agent.py`](examples/minimal_agent.py) is a complete, runnable integration in
-~100 lines: define tools on a simulated backend, a model adapter, an agent that uses
-`AgentRuntime`, and a `Scenario`. Then:
+- Only interactions that go through `AgentRuntime` are replayed. Code that bypasses it is
+  not replayed, and its network access is blocked during offline replay.
+- The demo agents use **scripted models**: deterministic policies that stand in for an LLM,
+  labelled `scripted` everywhere. Live AI mode is optional and opt-in.
+- Branch executions are real executions of the agent code against simulated backends, not
+  predictions of what production would have done.
+- GhostReplay does not capture hidden model reasoning or state it cannot observe. State
+  snapshots come only from explicit `observe` hooks and backend snapshots.
+
+## Integrate your own agent
+
+[`examples/minimal_agent.py`](examples/minimal_agent.py) is a complete integration in
+about 100 lines:
 
 ```python
 lab = Lab("example", [WeatherScenario()])
@@ -149,110 +197,105 @@ cf = lab.counterfactual(
     [FaultSpec(id="f", kind="http_500", target=FaultTarget(name="weather.get"))],
     mode="branch",
 )
-print([i.status for i in cf.invariants])  # ['failed'] — agent hid the error
+print([i.status for i in cf.invariants])  # ['failed']: the agent hid the error
 ```
 
-A real LLM plugs in by implementing `ModelAdapter` (`provider`, `model`, `is_live`, `complete`);
-recordings then carry `model_is_live: true` and the UI labels them accordingly.
+## Testing
 
----
+```bash
+uv run pytest                                  # framework, both apps, regressions, deployment
+```
 
-## The dashboard
+```bash
+uv run ruff check . && uv run ruff format --check .
+```
 
-`apps/dashboard` — React + TypeScript (strict) + Vite + Tailwind. It talks to both labs through
-the same HTTP API and shows only stored executions.
+```bash
+corepack pnpm --dir apps/dashboard typecheck && corepack pnpm --dir apps/dashboard build
+```
 
-- **Guided demo** — one click runs the full story with real executions: incident → offline
-  replay → root cause → counterfactual → fix → regression proof.
-- **Executions** — every run with mode, variant, tool calls, errors, committed destructive side
-  effects and failed invariants; record new runs under healthy or incident conditions.
-- **Timeline + Inspector** — chronological events with simulated-time bars, source badges,
-  prompts, responses, errors, observable state before/after, injected faults, replay verdicts.
-- **Replay Studio** — replays over Server-Sent Events; each row appears as the engine emits it,
-  and the pacing slider slows the engine itself.
-- **Failure Lab** — pick a recorded step and a fault (or a preset), choose the agent variant and
-  execution mode, see exactly which field changed and whether branch execution was needed.
-- **Diff** — side-by-side aligned interactions, first divergence, field-level changes,
-  behavioural table.
-- **Regression** — run a case against every agent variant, PASS/FAIL per invariant with
-  explanations, export the pytest module and case file.
+```bash
+corepack pnpm --dir apps/dashboard e2e         # Playwright, against the real gateway
+```
 
-## HTTP API (per lab)
+```bash
+uv run ghostreplay test tests/regression --junit reports/junit.xml --json reports/report.json
+```
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/info`, `/api/scenarios`, `/api/faults` | lab metadata, scenarios (variants, conditions, presets, invariants, tools), fault catalog |
-| GET | `/api/executions`, `/api/executions/{id}` | summaries, full execution |
-| POST | `/api/runs/record` | record a run |
-| POST | `/api/runs/replay` | offline replay + diff vs recording |
-| GET | `/api/executions/{id}/replay/stream` | SSE replay stream (`delay_ms` paces the engine) |
-| POST | `/api/runs/counterfactual` | inject faults/preset; `mode` = auto, replay, branch |
-| GET | `/api/diff?a=&b=` | structural diff |
-| POST | `/api/regression/run`, `/api/regression/export` | run cases for variants, generate pytest |
-| POST | `/api/demo/prepare` | run the full guided story |
-
-Interactive docs: http://127.0.0.1:8101/docs and http://127.0.0.1:8102/docs.
-
-## Regression tests
-
-`tests/regression/` contains committed cases generated by `export-cases`:
+Regenerate the committed regression cases:
 
 ```bash
 uv run support-agent-lab export-cases --out tests/regression
 ```
 
-Each case is a JSON file (scenario id, variant, conditions, faults, embedded reference
-recording, expectation) plus a 15-line pytest module. Vulnerable variants are expected to
-**FAIL** (the detector must catch the bug); fixed variants must **PASS**. Case files are
-validated data; scenarios are resolved by id from installed entry points — nothing in a case is
-executed.
+```bash
+uv run devops-agent-lab export-cases --out tests/regression
+```
 
-## Security and safety guarantees
+Vulnerable variants are expected to **FAIL**, which shows the detector catches the bug;
+fixed variants must **PASS**. CI runs all of the above, plus both terminal demos and a
+container smoke test ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
-- All demo tools are in-memory simulations; no AWS SDK, payment SDK or real credentials anywhere.
-- Offline replay never invokes tool handlers or model adapters and blocks socket access from the
-  replaying thread (other server threads are unaffected).
+## Deployment
+
+One container serves both labs and the dashboard, with health checks at `/healthz` and
+`/api/health`. Set `GHOSTREPLAY_PUBLIC=1` on internet-facing deployments to enable rate
+limits, concurrency caps, body limits and bounded storage, and to disable live AI mode. A
+Render blueprint is included. See [docs/deployment.md](docs/deployment.md).
+
+## Kiro integration
+
+The [`.kiro/`](.kiro) directory is set up for spec-driven development in
+[Kiro](https://kiro.dev):
+
+- **Steering**: product, tech, structure, architecture, security, conventions (by file
+  pattern), and competition (manual).
+- **Specs**: `replay-engine`, `failure-injection`, `support-agent-lab`, `devops-agent-lab`
+  and `dashboard`. Each has requirements, design and tasks, with the tests and verification
+  commands that back them.
+- **Hooks**: run the framework tests, scenario regressions, dashboard type check and secret
+  scan when matching files are saved, and lint when the agent stops.
+
+The specs describe the implementation as it exists and were written after it. Tasks marked
+done were completed before the repository was opened in Kiro. Open tasks are real next
+steps meant to be built with Kiro. [docs/kiro-workflow.md](docs/kiro-workflow.md) and
+[docs/kiro-demo-prompts.md](docs/kiro-demo-prompts.md) describe that workflow.
+
+## Security
+
+- All demo tools are in-memory simulations. There is no AWS SDK, no payment SDK and no
+  real credentials anywhere, and none are needed.
 - Secrets are redacted before an event is stored; replay matching uses the same redaction.
-- Tools are allowlisted and argument-validated; unknown tools are recorded as errors, not run.
-- Trace and case files are Pydantic-validated data; errors are rebuilt via an allowlist.
-- File import/export is confined to a base directory; servers bind to 127.0.0.1.
+- Tools are allowlisted and argument-validated. Unknown tools are recorded as errors and
+  not run.
+- Trace and case files are Pydantic-validated data and never executed. Errors are rebuilt
+  through an allowlist. File access is confined to a base directory.
+- Local servers bind to 127.0.0.1. The public profile adds rate limiting and resource
+  limits.
 
-Each guarantee has a test in `packages/ghostreplay/tests`.
-
-## Honest limitations
-
-- Deterministic replay covers interactions that go through `AgentRuntime`. Code that bypasses it
-  is not replayed (and is blocked during offline replay).
-- The demo agents use **scripted models** — deterministic policies standing in for an LLM so
-  the demo is free and reproducible. They are labelled `scripted` everywhere and never presented
-  as live model output.
-- Branch executions are real executions of the agent code against simulated backends, not
-  predictions of what production would have done.
-- GhostReplay does not capture hidden model reasoning or state it cannot observe; state
-  snapshots come only from explicit `observe` hooks and backend snapshots.
+Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
 
 ## Repository layout
 
 ```
-.kiro/                 steering, specs (requirements/design/tasks) and agent hooks
-packages/ghostreplay/  the shared framework + its guarantee tests
+.kiro/                 steering, specs and hooks for Kiro
+packages/ghostreplay/  the shared framework (+ guarantee tests)
 apps/support-agent/    Support Agent Lab (Duplicate Refund)
-apps/devops-agent/     DevOps Agent Lab (Unsafe Infrastructure Action)
-apps/dashboard/        React dashboard
-tests/regression/      generated regression cases
+apps/devops-agent/     DevOps Agent Lab (Unsafe AWS Operation)
+apps/dashboard/        React dashboard (+ Playwright e2e)
+tests/                 generated regression cases, deployment and example tests
 examples/              bring-your-own-agent example
-docs/                  architecture and demo script
-scripts/dev.sh         start everything
+docs/                  architecture, deployment, live AI, Kiro workflow, assets
+submission/            hackathon submission materials
 ```
 
-## Kiro artifacts
+## Contributing
 
-The `.kiro/` directory holds the project's steering documents (product, structure, tech,
-conventions, security, scope), a spec per component (`core-framework`, `support-agent-lab`,
-`devops-agent-lab`, `dashboard`, each with requirements → design → tasks) and agent hooks that
-re-run the framework guarantees, re-check scenario outcomes, keep dashboard types in sync with the
-Python schema, and review fixtures for secrets. Open the repository in Kiro to use them.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, conventions
+and how to add a scenario, fault kind or invariant, and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). Third-party licenses are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

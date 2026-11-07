@@ -11,3 +11,8 @@ dist/
 reports/
 .DS_Store
 apps/dashboard/*.tsbuildinfo
+.env
+.env.*
+!.env.example
+apps/dashboard/test-results/
+apps/dashboard/playwright-report/
