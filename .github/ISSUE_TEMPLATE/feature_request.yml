@@ -1,0 +1,53 @@
+name: Feature request
+description: Propose a new fault kind, invariant, scenario, integration or dashboard feature.
+title: "feat: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. GhostReplay favours honest, deterministic behaviour: features must not invent agent behaviour,
+        present simulated results as real, or perform real side effects.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - New fault kind
+        - New invariant
+        - New scenario or lab
+        - Replay / diff / regression engine
+        - Model provider adapter
+        - Dashboard
+        - Deployment / CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What failure mode or workflow is hard or impossible today? A concrete agent incident is the best motivation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should GhostReplay do? For a fault kind, say whether it needs a real side effect (branch execution) or only changes what the agent sees.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to implement this myself (see CONTRIBUTING.md).
+          required: false

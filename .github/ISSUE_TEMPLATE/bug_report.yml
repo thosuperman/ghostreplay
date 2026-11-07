@@ -1,0 +1,98 @@
+name: Bug report
+description: Something in the framework, a lab, the dashboard or the deployment does not work as documented.
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+        **Security problems must not be reported here.** Use a private report as described in SECURITY.md.
+        Never paste API keys, tokens or real customer data. Recordings are redacted, but check before attaching one.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Framework (packages/ghostreplay)
+        - Support Agent Lab (duplicate-refund)
+        - DevOps Agent Lab (unsafe-infra-action)
+        - Dashboard
+        - Gateway / Docker / deployment
+        - Live AI mode
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Execution mode involved
+      options:
+        - record
+        - replay
+        - counterfactual-replay
+        - branch
+        - not applicable
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug. Include the exact error message or the unexpected verdict.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Commands, clicks, or a minimal test. A failing pytest or a redacted trace file is ideal.
+      placeholder: |
+        1. uv run support-agent-lab --db /tmp/gr demo
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output or logs
+      description: Paste terminal output, server logs or the browser console. This is rendered as code.
+      render: shell
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: "0.1.0 or a commit SHA"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, uv version, Node version, browser, and how you run it (dev.sh, gateway, Docker, hosted).
+      placeholder: |
+        OS: macOS 26
+        Python: 3.13
+        uv: 0.13.7
+        Node: 24
+        Run with: ./scripts/dev.sh
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: This report contains no secrets, credentials or real personal data.
+          required: true
