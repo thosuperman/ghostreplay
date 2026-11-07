@@ -36,6 +36,9 @@ switch_to() {  # switch_to <release-dir>   (atomic symlink swap)
 restart_all() {  # explicit error checks: `set -e` does not apply inside `if` conditions
   systemctl enable --quiet ghostreplay-support ghostreplay-devops \
     ghostreplay-backup.timer ghostreplay-monitor.timer caddy || return 1
+  # A crash-looping release can exhaust StartLimitBurst; clear that so a restart (or the
+  # rollback after it) is never refused with "start request repeated too quickly".
+  systemctl reset-failed ghostreplay-support ghostreplay-devops 2>/dev/null || true
   systemctl restart ghostreplay-support ghostreplay-devops || return 1
   systemctl start ghostreplay-backup.timer ghostreplay-monitor.timer || return 1
   systemctl reload-or-restart caddy || return 1

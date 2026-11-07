@@ -17,6 +17,7 @@ for lab in "${GR_LABS[@]}"; do
     status+=("$lab=FAIL($n)")
     if ((n >= 2)); then
       echo "WARNING: $lab failed $n health checks; restarting ghostreplay-$lab"
+      systemctl reset-failed "ghostreplay-$lab" 2>/dev/null
       systemctl restart "ghostreplay-$lab"
       : > "$state/$lab"
     fi
