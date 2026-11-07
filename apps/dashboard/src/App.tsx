@@ -70,11 +70,11 @@ export function App() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b hairline bg-ink-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-[1500px] items-center gap-6 px-5">
+        <div className="mx-auto flex h-14 max-w-[1500px] items-center gap-3 px-4 sm:gap-6 sm:px-5">
           <a href="#/" className="flex shrink-0 items-center gap-2.5">
             <GhostLogo className="size-7" />
             <span className="text-[15px] font-semibold tracking-tight text-white">
-              GhostReplay <span className="font-normal text-ink-300">Lab</span>
+              GhostReplay <span className="hidden font-normal text-ink-300 sm:inline">Lab</span>
             </span>
           </a>
 
@@ -87,7 +87,7 @@ export function App() {
                   key={id}
                   href={href(safeTarget)}
                   className={cx(
-                    "flex items-center gap-2 rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors",
+                    "flex items-center gap-2 rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors sm:px-3",
                     lab === id ? "bg-white/[0.09] text-white" : "text-ink-300 hover:text-white",
                   )}
                   title={
@@ -99,7 +99,8 @@ export function App() {
                   }
                 >
                   <Dot tone={health[id] === "up" ? "green" : health[id] === "down" ? "red" : "neutral"} pulse={health[id] === "checking"} />
-                  {LABS[id].name}
+                  <span className="sm:hidden">{LABS[id].short}</span>
+                  <span className="hidden sm:inline">{LABS[id].name}</span>
                 </a>
               );
             })}

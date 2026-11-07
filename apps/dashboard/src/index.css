@@ -130,3 +130,29 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Responsive layout: grid and flex children default to min-width:auto, so long code lines,
+   timelines and tables would widen the whole page on a phone. Let them shrink, and make
+   wide content wrap or scroll inside its own box instead. */
+.grid > *,
+.flex-1,
+main > * {
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .font-mono {
+    overflow-wrap: anywhere;
+  }
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  select,
+  label {
+    max-width: 100%;
+  }
+  .overflow-hidden:has(> table) {
+    overflow-x: auto;
+  }
+}
