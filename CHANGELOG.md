@@ -7,7 +7,33 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Public demo deployed at https://ghostreplay.hayaix.tech on a dedicated AWS Lightsail
+  instance (2 GB, `us-east-1`), with scripts in `deploy/lightsail/`:
+  - provisioning, the Route 53 record and HTTPS via Caddy;
+  - two sandboxed systemd services, one per lab, with no network access beyond loopback;
+  - atomic releases with automatic rollback;
+  - daily SQLite backups with a tested restore;
+  - a five-minute health and resource monitor.
+- Per-visitor session isolation in the public profile. An anonymous HttpOnly cookie scopes
+  every API read and write to the visitor's own executions; those runs expire after 24
+  hours and are capped per session. The store never lets one owner overwrite another
+  owner's execution, and existing databases are migrated in place.
+- Production deployment documentation in `docs/deployment/`: architecture, cost, domain and
+  HTTPS, environment variables, security, backup and restore, update and rollback,
+  troubleshooting.
+- A Playwright test that a second browser session cannot see the first session's runs.
+
+### Changed
+
+- The DevOps call to action is now "Try the Unsafe Infrastructure Demo".
+- The public profile no longer serves the OpenAPI docs and caps the replay stream's delay
+  per event at 400 ms.
+- The dashboard fits phone screens without zooming out.
+- The dashboard shows developer start commands only when served from localhost.
+- The browser tests create runs in the page's own session, so they also pass against a
+  public deployment.
 
 ## [0.1.0] - 2026-11-07
 

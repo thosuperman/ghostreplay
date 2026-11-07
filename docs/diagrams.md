@@ -56,3 +56,27 @@ sequenceDiagram
   S-->>A: recorded response (source = recorded)
   Note over S: mismatch → divergence event + ReplayDivergenceError (no guessing)
 ```
+
+## Production deployment
+
+The live demo at https://ghostreplay.hayaix.tech. Details:
+[docs/deployment/ARCHITECTURE.md](deployment/ARCHITECTURE.md).
+
+```mermaid
+flowchart TB
+  user([Visitor browser]) -->|HTTPS| dns[Route 53<br/>ghostreplay.hayaix.tech A 34.226.55.219]
+  dns --> fw[Lightsail firewall + ufw<br/>80, 443 public · 22 admin only]
+  subgraph vps[Lightsail ghostreplay-prod · us-east-1 · 2 GB · Ubuntu 24.04]
+    fw --> caddy[Caddy<br/>TLS · security headers · static dashboard]
+    caddy -->|/lab/support/*| sup[ghostreplay-support.service<br/>127.0.0.1:8101 · 1 worker]
+    caddy -->|/lab/devops/*| dev[ghostreplay-devops.service<br/>127.0.0.1:8102 · 1 worker]
+    sup --> fwk[(ghostreplay framework)]
+    dev --> fwk
+    sup --> sdb[(support-agent.sqlite3<br/>WAL · per-session rows)]
+    dev --> ddb[(devops-agent.sqlite3<br/>WAL · per-session rows)]
+    timers[backup timer · monitor timer] -.-> sdb
+    timers -.-> ddb
+  end
+  sup -. blocked: IPAddressDeny=any .-> meta[instance metadata / AWS APIs / internet]
+  dev -. blocked .-> meta
+```

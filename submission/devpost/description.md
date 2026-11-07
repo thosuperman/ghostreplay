@@ -2,7 +2,7 @@
 
 **Break AI agents safely. Replay failures. Prove the fix.**
 
-- Live demo: `<DEPLOYED_URL — add after deployment>`
+- Live demo: https://ghostreplay.hayaix.tech
 - Video: `<VIDEO_URL>`
 - Source code (MIT): https://github.com/thosuperman/ghost-replay
 

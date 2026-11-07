@@ -14,8 +14,8 @@
 - [x] 3. Shell: header, lab switcher with health polling, navigation, hash router
   - _Requirements: 5.1_
 
-- [x] 4. Home with two one-click demos ("Try the Duplicate Refund Demo", "Try the Unsafe AWS
-  Operation Demo") and the guided Story, including the alert when `DemoStory.ok` is false
+- [x] 4. Home with two one-click demos ("Try the Duplicate Refund Demo", "Try the Unsafe
+  Infrastructure Demo") and the guided Story, including the alert when `DemoStory.ok` is false
   - _Requirements: 1.1, 1.2, 1.3_
 
 - [x] 5. Execution Explorer (record under healthy/incident conditions)

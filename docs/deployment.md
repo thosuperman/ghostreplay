@@ -1,5 +1,10 @@
 # Deployment
 
+> **Production:** <https://ghostreplay.hayaix.tech> runs on AWS Lightsail with Caddy and two
+> sandboxed systemd services. See [docs/deployment/AWS_LIGHTSAIL.md](deployment/AWS_LIGHTSAIL.md)
+> and [`deploy/lightsail/`](../deploy/lightsail/README.md). This page covers the container
+> option for other hosts.
+
 GhostReplay Lab ships as **one container** that serves both lab APIs and the dashboard:
 
 | Path | What |

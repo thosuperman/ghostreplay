@@ -56,5 +56,6 @@ It is **not** a generic observability dashboard. Every screen answers one questi
 - **Offline demo (default):** scripted models, no keys, fully reproducible.
 - **Live AI (opt-in):** `GHOSTREPLAY_LIVE=1` + provider credentials; recordings replay offline
   without the API. See #[[file:docs/live-ai.md]].
-- **Hosted demo:** one container (`ghostreplay serve`) with the public deployment profile
-  (`GHOSTREPLAY_PUBLIC=1`). See #[[file:docs/deployment.md]].
+- **Hosted demo:** https://ghostreplay.hayaix.tech (AWS Lightsail, public deployment profile
+  `GHOSTREPLAY_PUBLIC=1`, private expiring session per visitor). See
+  #[[file:docs/deployment/AWS_LIGHTSAIL.md]]; container option in #[[file:docs/deployment.md]].

@@ -22,8 +22,13 @@ inclusion: always
 - pnpm via `corepack` (`packageManager` is pinned in the root `package.json`).
 
 ## Delivery
+- Production: https://ghostreplay.hayaix.tech on one AWS Lightsail instance (2 GB,
+  `us-east-1`): Caddy (TLS, static dashboard) in front of two sandboxed systemd services,
+  one per lab, each with its own SQLite file. Scripts in `deploy/lightsail/`
+  (`deploy.sh` ships `HEAD`, activates atomically and rolls back automatically on failed
+  health checks). See #[[file:docs/deployment/AWS_LIGHTSAIL.md]].
 - One container image (`Dockerfile`): dashboard build stage + Python runtime running
-  `ghostreplay serve`. `compose.yaml` for local runs, `render.yaml` Blueprint for hosting.
+  `ghostreplay serve`. `compose.yaml` for local runs, `render.yaml` Blueprint for other hosts.
 - CI: `.github/workflows/ci.yml` — Ruff, pytest, both CLI demos (non-zero exit when a step
   misses its expected verdict), committed + freshly generated regression cases, dashboard
   typecheck/build, Playwright e2e against the gateway, Docker build + smoke test.
@@ -61,4 +66,7 @@ Live mode: `GHOSTREPLAY_LIVE`, `GHOSTREPLAY_LIVE_PROVIDER`, `GHOSTREPLAY_LIVE_MO
 `GHOSTREPLAY_LIVE_EFFORT`, `GHOSTREPLAY_LIVE_MAX_CALLS`. Serving: `GHOSTREPLAY_DB_DIR`,
 `GHOSTREPLAY_DASHBOARD_DIR`, `GHOSTREPLAY_CORS_ORIGINS`. Public profile: `GHOSTREPLAY_PUBLIC`,
 `GHOSTREPLAY_TRUST_PROXY`, `GHOSTREPLAY_RATE_LIMIT_PER_MINUTE`, `GHOSTREPLAY_MAX_CONCURRENT_RUNS`,
-`GHOSTREPLAY_MAX_EXECUTIONS`, `GHOSTREPLAY_MAX_BODY_BYTES`. Reference: #[[file:.env.example]].
+`GHOSTREPLAY_MAX_EXECUTIONS`, `GHOSTREPLAY_MAX_BODY_BYTES`, `GHOSTREPLAY_SESSION_ISOLATION`,
+`GHOSTREPLAY_SESSION_TTL_HOURS`, `GHOSTREPLAY_MAX_EXECUTIONS_PER_SESSION`,
+`GHOSTREPLAY_MAX_STREAM_DELAY_MS`. Reference: #[[file:.env.example]] and
+#[[file:docs/deployment/ENVIRONMENT_VARIABLES.md]].

@@ -34,7 +34,12 @@ inclusion: always
 9. **Public deployment profile** (`GHOSTREPLAY_PUBLIC=1`): per-client rate limit on mutating
    requests and replay streams, bounded concurrent engine runs (HTTP 503 beyond), request body
    cap (Content-Length required), clearing disabled, live mode forced off, retention cap on
-   stored executions. Keep these defaults when touching `server/settings.py` or `server/app.py`.
+   stored executions, per-visitor session isolation (an HttpOnly cookie scopes every read and
+   write through `OwnedStore`; owned rows expire after 24 h; an upsert never overwrites another
+   owner's row), capped replay-stream delay, no OpenAPI docs. Keep these defaults when
+   touching `server/settings.py`, `server/app.py` or `storage/sqlite.py`.
+   Production (AWS Lightsail) also runs each lab as a systemd service with no network access
+   beyond loopback. See #[[file:docs/deployment/SECURITY.md]].
 10. **Live credentials.** Provider keys are read by the provider SDK from the environment; they
     are never part of a recorded request. Never commit `.env`; `.env.example` lists variables
     without values.

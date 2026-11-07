@@ -30,10 +30,11 @@ apps/support-agent/           Support Agent Lab — Duplicate Refund (support_ag
 apps/devops-agent/            DevOps Agent Lab — Unsafe Infrastructure Action (devops_agent)
 apps/dashboard/               React dashboard (src/api, src/components, src/lib, src/views)
 tests/regression/             committed regression cases (*.case.json + generated test_*.py)
-tests/                        deployment/gateway tests, example test, secret-scanner test
+tests/                        deployment/gateway tests, public session isolation, example test, secret-scanner test
 examples/minimal_agent.py     bring-your-own-agent integration example
 scripts/                      dev.sh (start everything), secret_scan.py
-docs/                         architecture, deployment, live AI, demo script, Kiro workflow
+docs/                         architecture, deployment (+ docs/deployment/ for production), live AI, Kiro workflow
+deploy/lightsail/             production: provision, DNS, deploy/rollback, backups, Caddyfile, systemd units
 .github/workflows/ci.yml      CI pipeline
 Dockerfile, compose.yaml, render.yaml   container + hosting
 .kiro/                        steering, specs, hooks, settings (this directory)

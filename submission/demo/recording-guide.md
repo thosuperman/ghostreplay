@@ -39,6 +39,16 @@ docker compose down -v && docker compose up --build
 
 (`-v` removes the `ghostreplay-data` volume, which holds only demo executions.)
 
+### Option C: the live deployment
+
+Open https://ghostreplay.hayaix.tech in a fresh private window. Each browser session starts
+with an empty Explorer and only ever sees the runs it creates, so a new private window is a
+clean store. Runs expire after 24 hours, and **Clear** is disabled on the public site.
+Recording here shows judges exactly what they will click. The two guided demos take under
+a second of server time each; the rest of what you see is network latency from your
+location to `us-east-1`. The public site limits each address to 30 runs per minute per lab,
+which is far more than a take needs.
+
 ### Warm-up run
 
 Click both demo buttons once before recording ("Try the Duplicate Refund Demo" and
@@ -103,7 +113,7 @@ Any of these work; use what you know:
   what a result says. Do not edit numbers, verdicts or labels.
 - Add zoom-ins on small text (invariants, metrics, badges).
 - Add captions or subtitles; export an `.srt` from the editor or from the script.
-- End card: project name, tagline, repository URL, `<DEPLOYED_URL>`.
+- End card: project name, tagline, repository URL, `https://ghostreplay.hayaix.tech`.
 
 ## 7. Export
 
@@ -121,7 +131,7 @@ Any of these work; use what you know:
    "GhostReplay Lab: break AI agents safely, replay failures, prove the fix".
 2. Visibility: public (or unlisted if the official rules allow it). Check the hackathon's
    rules for allowed platforms and visibility.
-3. Description: tagline, repository URL, `<DEPLOYED_URL>`, and a note that the demo agents
+3. Description: tagline, repository URL, `https://ghostreplay.hayaix.tech`, and a note that the demo agents
    use scripted models and simulated tools.
 4. Upload the `.srt` captions.
 5. Open the video in a private browser window to confirm it plays without signing in.

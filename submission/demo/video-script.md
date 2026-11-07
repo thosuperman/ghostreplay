@@ -153,7 +153,7 @@ running (minimum 2)"). Scroll to step 5 and point at the fixed column (PASS) and
 
 ## 2:50 to 2:57 · Close
 
-**Screen:** Dashboard home page hero, then the repository URL and `<DEPLOYED_URL>` as a
+**Screen:** Dashboard home page hero, then the repository URL and `https://ghostreplay.hayaix.tech` as a
 lower-third.
 
 **Narration:**

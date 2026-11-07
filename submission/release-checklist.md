@@ -102,17 +102,17 @@ gh run watch
 3. Verify:
 
    ```bash
-   curl -fsS https://<DEPLOYED_HOST>/api/health
+   curl -fsS https://ghostreplay.hayaix.tech/lab/support/api/health && curl -fsS https://ghostreplay.hayaix.tech/lab/devops/api/health
    ```
 
    ```bash
-   E2E_BASE_URL=https://<DEPLOYED_HOST> corepack pnpm --dir apps/dashboard e2e:only
+   E2E_BASE_URL=https://ghostreplay.hayaix.tech corepack pnpm --dir apps/dashboard e2e:only
    ```
 
 4. Click both demo buttons on the home page.
-5. Replace `<DEPLOYED_URL — add after deployment>` in README and the submission files.
+5. The deployed URL (https://ghostreplay.hayaix.tech) is filled in across README and the submission files.
 
-- [ ] Deployed and verified.
+- [x] Deployed and verified (2026-11-07, AWS Lightsail; `docs/deployment/AWS_LIGHTSAIL.md`).
 
 ## 5. Tag the release **(owner)**
 

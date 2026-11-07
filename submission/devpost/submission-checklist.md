@@ -32,18 +32,18 @@ Kiroween rules page; this checklist does not replace it.
 - [x] One-container deployment (`Dockerfile`, `compose.yaml`) and Render Blueprint (`render.yaml`).
 - [x] Public deployment profile (`GHOSTREPLAY_PUBLIC=1`) with rate limits; live AI mode is
       forced off in that profile.
-- [ ] **(owner)** Deploy (Render: New → Blueprint → select the repository; see
-      `docs/deployment.md`). Nothing is deployed yet.
-- [ ] **(owner)** Verify the deployment:
+- [x] Deployed to AWS Lightsail (dedicated 2 GB instance, `us-east-1`) at https://ghostreplay.hayaix.tech
+      with Caddy, HTTPS and per-visitor session isolation. See `docs/deployment/AWS_LIGHTSAIL.md`.
+- [x] Verified on 2026-11-07 (health, both demos, Playwright 11/11 against the live site,
+      reboot persistence, backup/restore and rollback drills). Re-check before submitting:
 
-      curl -fsS <DEPLOYED_URL>/api/health
-      E2E_BASE_URL=<DEPLOYED_URL> corepack pnpm --dir apps/dashboard e2e:only
+      curl -fsS https://ghostreplay.hayaix.tech/lab/support/api/health
+      curl -fsS https://ghostreplay.hayaix.tech/lab/devops/api/health
+      E2E_BASE_URL=https://ghostreplay.hayaix.tech corepack pnpm --dir apps/dashboard e2e:only
 
-- [ ] **(owner)** Click both "Try the Duplicate Refund Demo" and "Try the Unsafe AWS
-      Operation Demo" on the deployment and confirm both stories show "bug reproduced" and
-      "fix proven".
-- [ ] Replace every `<DEPLOYED_URL — add after deployment>` placeholder (README, description).
-      Find them with: `grep -rn "DEPLOYED_URL" --include='*.md' .`
+- [x] Both "Try the Duplicate Refund Demo" and "Try the Unsafe Infrastructure Demo" show
+      "bug reproduced" and "fix proven" on the deployment.
+- [x] Deployed URL filled in (README, description, video script, storyboard, recording guide).
 
 ## 3. Video
 
@@ -77,7 +77,7 @@ Kiroween rules page; this checklist does not replace it.
 - [ ] **(owner)** Built with: tags from `submission/devpost/technologies.md`.
 - [ ] **(owner)** Category: Skeleton Crew. Explain the shared framework and the two apps
       (the "Skeleton Crew" section of the description does this).
-- [ ] **(owner)** Links: repository URL, `<DEPLOYED_URL>`, `<VIDEO_URL>`.
+- [ ] **(owner)** Links: repository URL, https://ghostreplay.hayaix.tech, `<VIDEO_URL>`.
 - [ ] **(owner)** Image gallery: real screenshots from `submission/demo/screenshots-checklist.md`
       plus the banner from `docs/assets/`.
 - [ ] **(owner)** Team members and any additional questions the form asks.
@@ -138,7 +138,7 @@ gh repo edit thosuperman/ghost-replay \
 ```
 
 ```bash
-gh repo edit thosuperman/ghost-replay --homepage "<DEPLOYED_URL>"
+gh repo edit thosuperman/ghost-replay --homepage "https://ghostreplay.hayaix.tech"
 ```
 
 ## Repository presentation

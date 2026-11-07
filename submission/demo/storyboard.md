@@ -20,7 +20,7 @@ Companion to `video-script.md`. One row per shot. "Route" is the dashboard hash 
 | 12 | 2:10 to 2:20 | Guided demo (devops) | Switch labs, incident loads | Header switch "DevOps Agent Lab" or "Try the Unsafe Infrastructure Demo"; `infra.capacity_preserved` FAIL | Live click |
 | 13 | 2:20 to 2:33 | Guided demo (devops), step 5 | Hold on vulnerable vs fixed | Invariant table, "Vulnerable agent told the user" / "Fixed agent told the user" | Live scroll |
 | 14 | 2:33 to 2:50 | Kiro (real session only) | Spec task, hook run, result | `.kiro/specs/...`, `.kiro/hooks/...` output | Cut |
-| 15 | 2:50 to 2:57 | Home | Logo and tagline, lower-third with repository URL and `<DEPLOYED_URL>` | Hero | Fade out |
+| 15 | 2:50 to 2:57 | Home | Logo and tagline, lower-third with repository URL and `https://ghostreplay.hayaix.tech` | Hero | Fade out |
 
 ## Visual conventions
 

@@ -9,6 +9,12 @@
   <img src="https://img.shields.io/badge/runs-offline-22d3ee" alt="Runs offline" />
 </p>
 
+<p align="center">
+  <b>Live demo: <a href="https://ghostreplay.hayaix.tech">ghostreplay.hayaix.tech</a></b>
+  — no sign-up, no API keys. Click <i>Try the Duplicate Refund Demo</i> or
+  <i>Try the Unsafe Infrastructure Demo</i>.
+</p>
+
 **GhostReplay is an open-source deterministic replay and failure-testing framework for
 tool-using AI agents.** It records what an agent actually did and replays it offline
 without touching a single service. It injects the failures that happen in production
@@ -239,10 +245,19 @@ container smoke test ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 ## Deployment
 
-One container serves both labs and the dashboard, with health checks at `/healthz` and
-`/api/health`. Set `GHOSTREPLAY_PUBLIC=1` on internet-facing deployments to enable rate
-limits, concurrency caps, body limits and bounded storage, and to disable live AI mode. A
-Render blueprint is included. See [docs/deployment.md](docs/deployment.md).
+The public demo at <https://ghostreplay.hayaix.tech> runs on a dedicated AWS Lightsail
+instance (2 GB, `us-east-1`). Caddy handles HTTPS and serves the static dashboard, and each
+lab runs as its own sandboxed systemd service with its own SQLite file. The labs have no
+network access beyond loopback. Every visitor gets a private, expiring session. Scripts are
+in [`deploy/lightsail/`](deploy/lightsail/README.md); provisioning, security, costs,
+backups and the live verification results are in
+[docs/deployment/AWS_LIGHTSAIL.md](docs/deployment/AWS_LIGHTSAIL.md).
+
+For other hosts, one container serves both labs and the dashboard (`Dockerfile`,
+`compose.yaml`, Render blueprint); see [docs/deployment.md](docs/deployment.md). Set
+`GHOSTREPLAY_PUBLIC=1` on any internet-facing deployment. That enables rate limits,
+concurrency caps, body limits, bounded storage and per-visitor session isolation, and
+turns off live AI mode.
 
 ## Kiro integration
 
@@ -271,8 +286,10 @@ steps meant to be built with Kiro. [docs/kiro-workflow.md](docs/kiro-workflow.md
   not run.
 - Trace and case files are Pydantic-validated data and never executed. Errors are rebuilt
   through an allowlist. File access is confined to a base directory.
-- Local servers bind to 127.0.0.1. The public profile adds rate limiting and resource
-  limits.
+- Local servers bind to 127.0.0.1. The public profile adds rate limiting, resource limits
+  and per-visitor session isolation. The production services cannot reach the network,
+  including the cloud metadata endpoint (see
+  [docs/deployment/SECURITY.md](docs/deployment/SECURITY.md)).
 
 Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
 
@@ -284,9 +301,10 @@ packages/ghostreplay/  the shared framework (+ guarantee tests)
 apps/support-agent/    Support Agent Lab (Duplicate Refund)
 apps/devops-agent/     DevOps Agent Lab (Unsafe Infrastructure)
 apps/dashboard/        React dashboard (+ Playwright e2e)
+deploy/lightsail/      production deployment: provisioning, Caddy, systemd, backups
 tests/                 generated regression cases, deployment and example tests
 examples/              bring-your-own-agent example
-docs/                  architecture, deployment, live AI, Kiro workflow, assets
+docs/                  architecture, deployment (docs/deployment/), live AI, Kiro, assets
 submission/            hackathon submission materials
 ```
 
