@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 700" width="1100" height="700" role="img" aria-label="GhostReplay architecture: two lab apps share the ghostreplay framework; agents reach tools and models only through AgentRuntime and Session">
+  <style>
+    .t{font-family:Inter,'Segoe UI',system-ui,sans-serif;fill:#e7e9f2;font-size:15px;font-weight:600}
+    .s{font-family:Inter,'Segoe UI',system-ui,sans-serif;fill:#9aa0b8;font-size:12.5px}
+    .m{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px}
+    .box{fill:#0d1018;stroke:#2a2f42;stroke-width:1.2}
+    .app{fill:#120f24;stroke:#7c5cff;stroke-opacity:.6}
+    .core{fill:#0b1420;stroke:#22d3ee;stroke-opacity:.55}
+    .arrow{stroke:#5b6180;stroke-width:1.6;fill:none;marker-end:url(#a)}
+  </style>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b6180"/></marker></defs>
+  <rect width="1100" height="700" fill="#06070b"/>
+  <text x="40" y="44" class="t" style="font-size:20px">GhostReplay Lab — architecture</text>
+  <text x="40" y="66" class="s">Two independent applications on one shared framework. Agents touch the world only through AgentRuntime.</text>
+
+  <!-- apps -->
+  <rect x="40" y="96" width="320" height="120" rx="12" class="box app"/>
+  <text x="60" y="124" class="t">Support Agent Lab</text>
+  <text x="60" y="146" class="s">apps/support-agent · :8101</text>
+  <text x="60" y="170" class="s">SupportAgent (vulnerable | fixed)</text>
+  <text x="60" y="190" class="s">simulated payments gateway, orders DB, CRM</text>
+  <rect x="390" y="96" width="320" height="120" rx="12" class="box app"/>
+  <text x="410" y="124" class="t">DevOps Agent Lab</text>
+  <text x="410" y="146" class="s">apps/devops-agent · :8102</text>
+  <text x="410" y="170" class="s">DevOpsAgent (vulnerable | fixed + SafetyGate)</text>
+  <text x="410" y="190" class="s">simulated AWS-like EC2, CloudWatch, IAM, deploys</text>
+  <rect x="740" y="96" width="320" height="120" rx="12" class="box"/>
+  <text x="760" y="124" class="t">Dashboard</text>
+  <text x="760" y="146" class="s">apps/dashboard · React + Vite + Tailwind</text>
+  <text x="760" y="170" class="s">Story · Explorer · Timeline · Replay Studio</text>
+  <text x="760" y="190" class="s">Failure Lab · Diff · Regression</text>
+
+  <!-- framework -->
+  <rect x="40" y="250" width="1020" height="370" rx="16" fill="none" stroke="#22d3ee" stroke-opacity=".25" stroke-dasharray="6 6"/>
+  <text x="60" y="278" class="t" style="fill:#67e8f9">packages/ghostreplay — shared framework</text>
+
+  <rect x="60" y="298" width="300" height="86" rx="10" class="box core"/>
+  <text x="76" y="324" class="t">AgentRuntime</text>
+  <text x="76" y="346" class="m" fill="#c4b5fd">complete · call_tool · now · new_id</text>
+  <text x="76" y="366" class="m" fill="#c4b5fd">random · log · guard</text>
+
+  <rect x="400" y="298" width="300" height="86" rx="10" class="box core"/>
+  <text x="416" y="324" class="t">Session.interact(op)</text>
+  <text x="416" y="346" class="s">record · replay · counterfactual · branch</text>
+  <text x="416" y="366" class="s">divergence check · fault plan · source label</text>
+
+  <rect x="740" y="298" width="300" height="86" rx="10" class="box core"/>
+  <text x="756" y="324" class="t">Recorder + Redactor</text>
+  <text x="756" y="346" class="s">sequenced events, secrets scrubbed</text>
+  <text x="756" y="366" class="s">before anything is stored</text>
+
+  <rect x="60" y="414" width="220" height="80" rx="10" class="box"/>
+  <text x="76" y="440" class="t">ToolRegistry</text>
+  <text x="76" y="462" class="s">allowlisted, validated tools</text>
+  <text x="76" y="480" class="s">offline copy raises if invoked</text>
+  <rect x="300" y="414" width="220" height="80" rx="10" class="box"/>
+  <text x="316" y="440" class="t">ModelAdapter</text>
+  <text x="316" y="462" class="s">ScriptedModel (default)</text>
+  <text x="316" y="480" class="s">Anthropic (opt-in live mode)</text>
+  <rect x="540" y="414" width="240" height="80" rx="10" class="box"/>
+  <text x="556" y="440" class="t">Mutation catalog</text>
+  <text x="556" y="462" class="s">13 fault kinds: error · transform</text>
+  <text x="556" y="480" class="s">execute-then-error · delay</text>
+  <rect x="800" y="414" width="240" height="80" rx="10" class="box"/>
+  <text x="816" y="440" class="t">Offline guard</text>
+  <text x="816" y="462" class="s">sockets blocked on the</text>
+  <text x="816" y="480" class="s">replaying thread</text>
+
+  <rect x="60" y="520" width="300" height="80" rx="10" class="box"/>
+  <text x="76" y="546" class="t">Diff engine</text>
+  <text x="76" y="568" class="s">aligned interactions, first divergence,</text>
+  <text x="76" y="586" class="s">behavioural summary</text>
+  <rect x="400" y="520" width="300" height="80" rx="10" class="box"/>
+  <text x="416" y="546" class="t">Regression</text>
+  <text x="416" y="568" class="s">invariants → cases (JSON) → pytest,</text>
+  <text x="416" y="586" class="s">JUnit + JSON reports</text>
+  <rect x="740" y="520" width="300" height="80" rx="10" class="box"/>
+  <text x="756" y="546" class="t">Storage + server</text>
+  <text x="756" y="568" class="s">SQLite (WAL) · FastAPI · SSE replay stream</text>
+  <text x="756" y="586" class="s">gateway: one port for every lab</text>
+
+  <path d="M200 216V296" class="arrow"/>
+  <path d="M550 216 L260 296" class="arrow"/>
+  <path d="M900 216V516" class="arrow"/>
+  <path d="M360 341H398" class="arrow"/>
+  <path d="M700 341H738" class="arrow"/>
+  <path d="M550 384 L170 412" class="arrow"/>
+  <path d="M550 384 L410 412" class="arrow"/>
+  <path d="M550 384 L660 412" class="arrow"/>
+  <text x="40" y="660" class="s">Everything the agents call is simulated in memory. No real payment, cloud or network access is possible from the demo apps.</text>
+</svg>

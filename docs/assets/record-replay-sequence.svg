@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" width="1100" height="620" role="img" aria-label="Sequence: recording executes tools and stores events; replay serves the same events from the recording and stops at the first divergence">
+  <style>
+    .t{font-family:Inter,'Segoe UI',system-ui,sans-serif;fill:#e7e9f2;font-size:14px;font-weight:600}
+    .s{font-family:Inter,'Segoe UI',system-ui,sans-serif;fill:#9aa0b8;font-size:12.5px}
+    .l{stroke:#2a2f42;stroke-dasharray:4 5}
+    .m{stroke-width:1.6;fill:none;marker-end:url(#a)}
+  </style>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+  <rect width="1100" height="620" fill="#06070b"/>
+  <text x="40" y="40" class="t" style="font-size:18px">Record, then replay offline</text>
+  <g>
+    <rect x="60" y="64" width="140" height="36" rx="8" fill="#120f24" stroke="#7c5cff"/><text x="130" y="87" class="t" text-anchor="middle">Agent</text>
+    <rect x="300" y="64" width="160" height="36" rx="8" fill="#0b1420" stroke="#22d3ee"/><text x="380" y="87" class="t" text-anchor="middle">AgentRuntime</text>
+    <rect x="560" y="64" width="160" height="36" rx="8" fill="#0b1420" stroke="#22d3ee"/><text x="640" y="87" class="t" text-anchor="middle">Session</text>
+    <rect x="820" y="64" width="200" height="36" rx="8" fill="#0d1018" stroke="#2a2f42"/><text x="920" y="87" class="t" text-anchor="middle">Tool / model / store</text>
+  </g>
+  <path d="M130 100V600M380 100V600M640 100V600M920 100V600" class="l"/>
+
+  <text x="40" y="134" class="s" style="fill:#7dd3fc;font-weight:600">RECORD</text>
+  <path d="M130 150H376" class="m" stroke="#7dd3fc"/><text x="140" y="144" class="s">call_tool("payments.create_refund", args)</text>
+  <path d="M380 178H636" class="m" stroke="#7dd3fc"/><text x="390" y="172" class="s">interact(op): match key = hash(redacted request)</text>
+  <path d="M640 206H916" class="m" stroke="#7dd3fc"/><text x="650" y="200" class="s">execute in simulated backend</text>
+  <path d="M920 234H644" class="m" stroke="#7dd3fc"/><text x="700" y="252" class="s">response / error + state</text>
+  <path d="M640 270H916" class="m" stroke="#7dd3fc"/><text x="650" y="288" class="s">emit event (source = live), redacted, stored</text>
+
+  <text x="40" y="340" class="s" style="fill:#67e8f9;font-weight:600">REPLAY</text>
+  <path d="M130 356H376" class="m" stroke="#67e8f9"/><text x="140" y="350" class="s">same call, same args</text>
+  <path d="M380 384H636" class="m" stroke="#67e8f9"/><text x="390" y="378" class="s">interact(op) — tools are stubs that raise</text>
+  <rect x="580" y="398" width="440" height="52" rx="8" fill="#0b1420" stroke="#22d3ee" stroke-opacity=".5"/>
+  <text x="596" y="420" class="s">next recorded interaction has same kind, name, match key?</text>
+  <text x="596" y="440" class="s">yes → serve recorded response (source = recorded), advance clock</text>
+  <path d="M640 470H134" class="m" stroke="#67e8f9"/><text x="300" y="464" class="s">identical response, timestamps, durations</text>
+
+  <text x="40" y="520" class="s" style="fill:#fda4af;font-weight:600">DIVERGE</text>
+  <path d="M640 536H916" class="m" stroke="#fda4af"/><text x="650" y="530" class="s">different call → divergence event (field-level diff)</text>
+  <path d="M640 570H134" class="m" stroke="#fda4af"/><text x="200" y="564" class="s">ReplayDivergenceError — stop, never guess a continuation</text>
+</svg>
