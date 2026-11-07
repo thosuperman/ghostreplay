@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, LABS, type LabId } from "./api/client";
+import type { LiveModelInfo } from "./api/types";
 import { Badge, cx, Dot, GhostLogo } from "./components/ui";
 import { href, type Route, useRoute } from "./lib/router";
 import { DiffView } from "./views/DiffView";
@@ -13,15 +14,20 @@ import { Story } from "./views/Story";
 
 type Health = Record<LabId, "up" | "down" | "checking">;
 
-function useLabHealth(): Health {
+function useLabHealth(): { health: Health; live: Partial<Record<LabId, LiveModelInfo | null>> } {
   const [health, setHealth] = useState<Health>({ support: "checking", devops: "checking" });
+  const [live, setLive] = useState<Partial<Record<LabId, LiveModelInfo | null>>>({});
   useEffect(() => {
     let alive = true;
     const check = () => {
       (Object.keys(LABS) as LabId[]).forEach((lab) => {
         api
           .info(lab)
-          .then(() => alive && setHealth((h) => ({ ...h, [lab]: "up" })))
+          .then((info) => {
+            if (!alive) return;
+            setHealth((h) => ({ ...h, [lab]: "up" }));
+            setLive((l) => ({ ...l, [lab]: info.live_model ?? null }));
+          })
           .catch(() => alive && setHealth((h) => ({ ...h, [lab]: "down" })));
       });
     };
@@ -32,7 +38,7 @@ function useLabHealth(): Health {
       window.clearInterval(t);
     };
   }, []);
-  return health;
+  return { health, live };
 }
 
 const NAV: { name: Route["name"]; label: string }[] = [
@@ -54,8 +60,9 @@ function navHref(name: Route["name"], lab: LabId): string {
 
 export function App() {
   const route = useRoute();
-  const health = useLabHealth();
+  const { health, live } = useLabHealth();
   const lab = labOf(route);
+  const liveModel = lab ? live[lab] : undefined;
 
   return (
     <div className="min-h-screen">
@@ -112,7 +119,13 @@ export function App() {
 
           <div className="ml-auto hidden items-center gap-2 xl:flex">
             <Badge tone="cyan" title="All tools are in-memory simulations; replay blocks network access.">offline · simulated backends</Badge>
-            <Badge tone="amber" title="Decisions come from deterministic scripted models, not a live LLM.">scripted models</Badge>
+            {liveModel ? (
+              <Badge tone="violet" title={`Scripted models by default; live AI (${liveModel.provider} ${liveModel.model}) can be chosen when recording.`}>
+                scripted · live AI available
+              </Badge>
+            ) : (
+              <Badge tone="amber" title="Decisions come from deterministic scripted models, not a live LLM.">scripted models</Badge>
+            )}
           </div>
         </div>
         {lab && (
