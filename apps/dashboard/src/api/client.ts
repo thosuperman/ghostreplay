@@ -6,6 +6,7 @@ import type {
   FaultKind,
   FaultSpec,
   LabInfo,
+  ModelChoice,
   RegressionReport,
   RunResult,
   Scenario,
@@ -40,8 +41,8 @@ export const LABS: Record<LabId, LabDef> = {
     short: "DevOps",
     scenario: "unsafe-infra-action",
     base: "/lab/devops",
-    demoLabel: "Try the Unsafe Infra Action Demo",
-    tagline: "Stale health data. The agent terminates a healthy fleet mid-incident.",
+    demoLabel: "Try the Unsafe AWS Operation Demo",
+    tagline: "Stale health data on a simulated AWS fleet. The agent terminates healthy instances mid-incident.",
   },
 };
 
@@ -70,8 +71,8 @@ async function request<T>(lab: LabId, path: string, init?: RequestInit): Promise
     if (detail === null) {
       detail =
         res.status >= 500
-          ? `${LABS[lab].name} is not reachable. Start it with: uv run ${lab}-agent-lab serve`
-          : res.statusText;
+          ? `${LABS[lab].name} is not reachable (HTTP ${res.status}). Locally, start it with ./scripts/dev.sh or: uv run ${lab}-agent-lab serve`
+          : res.statusText || `HTTP ${res.status}`;
     }
     throw new ApiError(detail, res.status);
   }
@@ -88,8 +89,14 @@ export const api = {
   executions: (lab: LabId) => request<ExecutionSummary[]>(lab, "/api/executions?limit=200"),
   execution: (lab: LabId, id: string) => request<Execution>(lab, `/api/executions/${encodeURIComponent(id)}`),
   clear: (lab: LabId) => request<{ deleted: number }>(lab, "/api/executions", { method: "DELETE" }),
-  record: (lab: LabId, scenario: string, variant: string, conditions: Record<string, string>, title = "") =>
-    post<ExecutionSummary>(lab, "/api/runs/record", { scenario, variant, conditions, title }),
+  record: (
+    lab: LabId,
+    scenario: string,
+    variant: string,
+    conditions: Record<string, string>,
+    title = "",
+    model: ModelChoice = "scripted",
+  ) => post<ExecutionSummary>(lab, "/api/runs/record", { scenario, variant, conditions, title, model }),
   replay: (lab: LabId, executionId: string) => post<RunResult>(lab, "/api/runs/replay", { execution_id: executionId }),
   counterfactual: (
     lab: LabId,

@@ -58,10 +58,17 @@ export function Story({ lab }: { lab: LabId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lab]);
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 py-10">
+        <ErrorBox error={error} />
+        <Button variant="primary" onClick={() => void run()}>↻ Try again</Button>
+      </div>
+    );
+  }
   if (!loaded || busy) {
     return (
-      <div className="mx-auto max-w-xl py-16">
+      <div className="mx-auto max-w-xl py-16" role="status" aria-live="polite" aria-busy="true">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">{LABS[lab].name}</div>
         <h1 className="mt-2 text-2xl font-semibold text-white">Preparing the demo with real executions…</h1>
         <ol className="mt-8 space-y-3">
@@ -99,9 +106,20 @@ export function Story({ lab }: { lab: LabId }) {
         </div>
       </div>
 
-      <ol className="relative space-y-6 before:absolute before:bottom-6 before:left-[15px] before:top-6 before:w-px before:bg-gradient-to-b before:from-violet-400/50 before:via-white/10 before:to-emerald-400/40">
+      {!story.ok && (
+        <div role="alert" className="mb-6 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Some steps did not produce the outcome this story expects:{" "}
+          {story.steps
+            .filter((s) => !s.as_expected)
+            .map((s) => `${s.title} (expected ${String(s.expected).toUpperCase()}, got ${s.verdict.toUpperCase()})`)
+            .join("; ")}
+          . The results below are shown exactly as the engine produced them.
+        </div>
+      )}
+
+      <ol data-testid="story-steps" className="relative space-y-6 before:absolute before:bottom-6 before:left-[15px] before:top-6 before:w-px before:bg-gradient-to-b before:from-violet-400/50 before:via-white/10 before:to-emerald-400/40">
         {story.steps.map((step, i) => (
-          <li key={step.id} className="relative pl-12" style={{ animation: `rise 320ms ${i * 90}ms both` }}>
+          <li key={step.id} data-testid="story-step" data-verdict={step.verdict} className="relative pl-12" style={{ animation: `rise 320ms ${i * 90}ms both` }}>
             <span
               className={cx(
                 "absolute left-0 top-3 grid size-8 place-items-center rounded-full border font-mono text-xs font-semibold",

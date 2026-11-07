@@ -308,10 +308,13 @@ export interface DemoStep {
   narrative: string;
   execution_ids: string[];
   verdict: "pass" | "fail" | "info" | "diverged";
+  expected: "pass" | "fail" | null;
+  as_expected: boolean;
   data: Record<string, Json>;
 }
 
 export interface DemoStory {
+  ok: boolean;
   scenario: string;
   app: string;
   title: string;
@@ -337,5 +340,18 @@ export interface LabInfo {
   schema_version: string;
   scenarios: { id: string; title: string }[];
   offline: boolean;
+  public: boolean;
+  can_clear: boolean;
+  live_model: LiveModelInfo | null;
   storage: string;
 }
+
+export interface LiveModelInfo {
+  provider: string;
+  model: string;
+  effort: string;
+  max_calls: number;
+  sdk_installed: boolean;
+}
+
+export type ModelChoice = "scripted" | "live";

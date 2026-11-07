@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api, LABS, type LabId } from "../api/client";
-import type { ExecutionMode } from "../api/types";
+import type { ExecutionMode, ModelChoice } from "../api/types";
 import { verdictOf } from "../components/execution";
 import { Badge, Button, Card, cx, Empty, ErrorBox, Loading, ModeBadge, SectionHeader, Select, StatusBadge, Verdict } from "../components/ui";
 import { ago, ms } from "../lib/format";
@@ -10,6 +10,9 @@ import { useAsync } from "../lib/useAsync";
 export function Explorer({ lab }: { lab: LabId }) {
   const list = useAsync(() => api.executions(lab), [lab]);
   const scenarios = useAsync(() => api.scenarios(lab), [lab]);
+  const info = useAsync(() => api.info(lab), [lab]);
+  const [model, setModel] = useState<ModelChoice>("scripted");
+  const live = info.data?.live_model ?? null;
   const [mode, setMode] = useState<"all" | ExecutionMode>("all");
   const [busy, setBusy] = useState(false);
   const [variant, setVariant] = useState("vulnerable");
@@ -23,7 +26,8 @@ export function Explorer({ lab }: { lab: LabId }) {
     setErr(undefined);
     try {
       const conditions = incident ? Object.fromEntries(sc.conditions.map((c) => [c.id, c.incident])) : {};
-      const s = await api.record(lab, sc.id, variant, conditions, `${incident ? "Incident conditions" : "Healthy conditions"} (${variant})`);
+      const label = `${incident ? "Incident conditions" : "Healthy conditions"} (${variant}${model === "live" ? ", live AI" : ""})`;
+      const s = await api.record(lab, sc.id, variant, conditions, label, model);
       navigate({ name: "execution", lab, id: s.id });
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -41,17 +45,23 @@ export function Explorer({ lab }: { lab: LabId }) {
         actions={
           <>
             <Button variant="ghost" onClick={list.reload}>↻ Refresh</Button>
-            <Button
-              variant="danger"
-              onClick={async () => {
-                if (window.confirm("Delete all stored executions for this lab?")) {
-                  await api.clear(lab);
-                  list.reload();
-                }
-              }}
-            >
-              Clear
-            </Button>
+            {info.data?.can_clear !== false && (
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (window.confirm("Delete all stored executions for this lab?")) {
+                    try {
+                      await api.clear(lab);
+                      list.reload();
+                    } catch (e) {
+                      setErr(e instanceof Error ? e.message : String(e));
+                    }
+                  }
+                }}
+              >
+                Clear
+              </Button>
+            )}
           </>
         }
       >
@@ -71,10 +81,25 @@ export function Explorer({ lab }: { lab: LabId }) {
                 { value: "healthy", label: `Healthy: ${sc.conditions.map((c) => `${c.id}=${c.default}`).join(", ")}` },
               ]}
             />
+            {live && (
+              <Select
+                label="Model"
+                value={model}
+                onChange={(v) => setModel(v as ModelChoice)}
+                options={[
+                  { value: "scripted", label: "Scripted (offline, reproducible)" },
+                  { value: "live", label: `Live AI: ${live.provider} ${live.model} (≤${live.max_calls} calls)` },
+                ]}
+              />
+            )}
             <Button variant="primary" onClick={() => void record()} disabled={busy}>
               {busy ? "Recording…" : "● Record run"}
             </Button>
-            {err && <span className="text-sm text-rose-300">{err}</span>}
+            {err && (
+              <span role="alert" className="text-sm text-rose-300">
+                {err}
+              </span>
+            )}
           </div>
         </Card>
       )}
