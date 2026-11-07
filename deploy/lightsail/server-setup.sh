@@ -82,8 +82,9 @@ PubkeyAuthentication yes
 MaxAuthTries 3
 X11Forwarding no
 EOF
+install -d -m 755 /run/sshd   # Ubuntu 24.04 socket-activates sshd; `sshd -t` needs this
 sshd -t
-systemctl reload ssh
+systemctl reload-or-restart ssh
 
 log "host firewall (ufw): 22, 80, 443 only"
 ufw default deny incoming >/dev/null
