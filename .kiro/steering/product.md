@@ -42,7 +42,7 @@ It is **not** a generic observability dashboard. Every screen answers one questi
 - Developers building tool-using agents (support, DevOps, finance, internal automation).
 - First-time visitors (including judges): the promise must be clear in ~15 seconds, and one
   click must reach a fully prepared demo — **Try the Duplicate Refund Demo** or
-  **Try the Unsafe AWS Operation Demo** on the home page.
+  **Try the Unsafe Infrastructure Demo** on the home page.
 
 ## Flagship scenarios
 

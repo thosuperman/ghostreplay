@@ -42,7 +42,7 @@ docker compose down -v && docker compose up --build
 ### Warm-up run
 
 Click both demo buttons once before recording ("Try the Duplicate Refund Demo" and
-"Try the Unsafe AWS Operation Demo") so you know both stories finish with
+"Try the Unsafe Infrastructure Demo") so you know both stories finish with
 "✓ bug reproduced" and "✓ fix proven". Then reload the page: the guided demo re-runs when it
 is opened in a fresh page, so the recording shows real preparation.
 

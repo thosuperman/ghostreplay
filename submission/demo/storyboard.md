@@ -17,7 +17,7 @@ Companion to `video-script.md`. One row per shot. "Route" is the dashboard hash 
 | 10 | 1:46 to 1:56 | Guided demo step 5 → Diff | Table flips FAIL → PASS, then diff view | "First divergence between vulnerable and fixed", "Open side-by-side diff →", "first divergence" badge | Browser back, live click |
 | 11 | 1:56 to 2:10 | Regression Results (support) | Run cases, generate pytest | "▶ Run against every agent variant", "expected FAIL ✓", "expected PASS ✓", "Generate" | Live click |
 | 11b | (optional, 2 s) | Terminal | `uv run pytest tests/regression -q` output | green dots / passed summary | Cut |
-| 12 | 2:10 to 2:20 | Guided demo (devops) | Switch labs, incident loads | Header switch "DevOps Agent Lab" or "Try the Unsafe AWS Operation Demo"; `infra.capacity_preserved` FAIL | Live click |
+| 12 | 2:10 to 2:20 | Guided demo (devops) | Switch labs, incident loads | Header switch "DevOps Agent Lab" or "Try the Unsafe Infrastructure Demo"; `infra.capacity_preserved` FAIL | Live click |
 | 13 | 2:20 to 2:33 | Guided demo (devops), step 5 | Hold on vulnerable vs fixed | Invariant table, "Vulnerable agent told the user" / "Fixed agent told the user" | Live scroll |
 | 14 | 2:33 to 2:50 | Kiro (real session only) | Spec task, hook run, result | `.kiro/specs/...`, `.kiro/hooks/...` output | Cut |
 | 15 | 2:50 to 2:57 | Home | Logo and tagline, lower-third with repository URL and `<DEPLOYED_URL>` | Hero | Fade out |

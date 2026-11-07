@@ -10,7 +10,7 @@ canonical text versions.
 flowchart TB
   subgraph Apps["Independent applications"]
     S["Support Agent Lab<br/>Duplicate Refund"]
-    D["DevOps Agent Lab<br/>Unsafe AWS Operation"]
+    D["DevOps Agent Lab<br/>Unsafe Infrastructure"]
     UI["Dashboard (React)"]
   end
   subgraph FW["packages/ghostreplay (shared framework)"]

@@ -16,7 +16,7 @@ requirements 8–9 are planned improvements (see `tasks.md`).
 one click, so that I do not need to read docs first.
 
 1.1 THE home page SHALL state the promise (record → replay → break → detect → prove) and offer
-    two one-click demos: "Try the Duplicate Refund Demo" and "Try the Unsafe AWS Operation Demo".
+    two one-click demos: "Try the Duplicate Refund Demo" and "Try the Unsafe Infrastructure Demo".
 1.2 WHEN a demo card is clicked THE dashboard SHALL open the lab's guided story, which calls
     `POST /api/demo/prepare` and links every step to the real executions it produced.
 1.3 IF the story reports `ok: false` THEN THE dashboard SHALL show an alert naming each step whose

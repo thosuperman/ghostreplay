@@ -13,7 +13,7 @@ recapture it under the same name if not. Devpost shows images at 3:2; leave some
 
 | # | File name | Status | Screen | Must show |
 |---|---|---|---|---|
-| 1 | `home.png` | exists, verify | Home (`#/`) | Headline, both demo cards ("Try the Duplicate Refund Demo", "Try the Unsafe AWS Operation Demo"), header badges "offline · simulated backends" and "scripted models" |
+| 1 | `home.png` | exists, verify | Home (`#/`) | Headline, both demo cards ("Try the Duplicate Refund Demo", "Try the Unsafe Infrastructure Demo"), header badges "offline · simulated backends" and "scripted models" |
 | 2 | `story-duplicate-refund.png` | exists, verify | Guided demo, Support Agent Lab | "✓ bug reproduced", "✓ fix proven", failed refund invariants with $129 vs $258 |
 | 3 | `replay-studio.png` | exists, verify | Replay Studio after a replay | Streamed rows with "✓ matched", recording vs replay engine |
 | 4 | `failure-lab.png` | exists, verify | Counterfactual Failure Lab | Preset "★ Refund times out after commit", "requires branch execution", a result verdict |

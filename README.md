@@ -28,7 +28,7 @@ fix.
 
 | | **Support Agent Lab** — `apps/support-agent` | **DevOps Agent Lab** — `apps/devops-agent` |
 |---|---|---|
-| Demo | **Try the Duplicate Refund Demo** | **Try the Unsafe AWS Operation Demo** |
+| Demo | **Try the Duplicate Refund Demo** | **Try the Unsafe Infrastructure Demo** |
 | What goes wrong | The payment gateway commits a $129 refund, the response times out, the agent retries, and the customer is refunded $258. | A stale health view reports three healthy instances as impaired, and the agent terminates the whole fleet during a bad deploy. |
 | Detected by | `refund.no_duplicate`, `refund.retries_are_idempotent`, `reply.matches_ledger` | `infra.no_unverified_destructive_action`, `infra.capacity_preserved`, `infra.destructive_requires_approval` |
 | The fix | Intent-scoped idempotency key + reconciliation before retry | `SafetyGate`: direct verification, IAM check, blast-radius budget, human approval |
@@ -71,7 +71,7 @@ git clone https://github.com/thosuperman/ghost-replay.git && cd ghost-replay
 ```
 
 Open **http://127.0.0.1:5173** and click **Try the Duplicate Refund Demo** or **Try the
-Unsafe AWS Operation Demo**. Each click records, replays, breaks, fixes and proves the
+Unsafe Infrastructure Demo**. Each click records, replays, breaks, fixes and proves the
 scenario with real executions.
 
 With Docker (both labs and the dashboard on one port):
@@ -282,7 +282,7 @@ Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
 .kiro/                 steering, specs and hooks for Kiro
 packages/ghostreplay/  the shared framework (+ guarantee tests)
 apps/support-agent/    Support Agent Lab (Duplicate Refund)
-apps/devops-agent/     DevOps Agent Lab (Unsafe AWS Operation)
+apps/devops-agent/     DevOps Agent Lab (Unsafe Infrastructure)
 apps/dashboard/        React dashboard (+ Playwright e2e)
 tests/                 generated regression cases, deployment and example tests
 examples/              bring-your-own-agent example

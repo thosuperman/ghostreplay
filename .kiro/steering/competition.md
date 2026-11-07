@@ -46,7 +46,7 @@ A feature is "done" only when a test or a scripted end-to-end run demonstrates i
 
 ## What a first-time viewer must see in 15 seconds
 The promise (record → replay → break → detect → fix → prove), two one-click demos ("Try the
-Duplicate Refund Demo", "Try the Unsafe AWS Operation Demo"), and labels that make clear the
+Duplicate Refund Demo", "Try the Unsafe Infrastructure Demo"), and labels that make clear the
 decisions come from a scripted model unless live AI mode is on.
 
 ## Submission rules

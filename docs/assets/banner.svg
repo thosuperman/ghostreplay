@@ -22,7 +22,7 @@
       <rect x="252" y="440" width="300" height="44" rx="22" fill="#a78bfa" fill-opacity="0.12" stroke="#a78bfa" stroke-opacity="0.4"/>
       <text x="402" y="469" text-anchor="middle" fill="#ddd6fe">Duplicate Refund demo</text>
       <rect x="572" y="440" width="330" height="44" rx="22" fill="#22d3ee" fill-opacity="0.10" stroke="#22d3ee" stroke-opacity="0.4"/>
-      <text x="737" y="469" text-anchor="middle" fill="#cffafe">Unsafe AWS Operation demo</text>
+      <text x="737" y="469" text-anchor="middle" fill="#cffafe">Unsafe Infrastructure demo</text>
       <text x="252" y="560">Open source · deterministic offline replay · failure injection · pytest regressions</text>
     </g>
   </g>

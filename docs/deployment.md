@@ -61,7 +61,7 @@ persistent disk at `/data` and the public profile switched on.
 1. Push the repository to GitHub.
 2. In Render: **New → Blueprint**, select the repository, confirm.
 3. Wait for the health check (`/api/health`) to pass, then open the service URL.
-4. Click **Try the Duplicate Refund Demo** and **Try the Unsafe AWS Operation Demo**.
+4. Click **Try the Duplicate Refund Demo** and **Try the Unsafe Infrastructure Demo**.
 
 A persistent disk needs a paid instance type. On a free instance, drop the `disk` block:
 the app still works, but stored executions are lost on restart. That is acceptable for a

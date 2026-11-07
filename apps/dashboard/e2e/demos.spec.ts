@@ -4,12 +4,12 @@ test("home page offers both one-click demos", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Break AI agents safely");
   await expect(page.getByRole("link", { name: /Try the Duplicate Refund Demo/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Try the Unsafe AWS Operation Demo/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Try the Unsafe Infrastructure Demo/ })).toBeVisible();
 });
 
 for (const demo of [
   { cta: /Try the Duplicate Refund Demo/, lab: "support" },
-  { cta: /Try the Unsafe AWS Operation Demo/, lab: "devops" },
+  { cta: /Try the Unsafe Infrastructure Demo/, lab: "devops" },
 ]) {
   test(`${demo.lab}: one click runs the full story on real executions`, async ({ page }) => {
     await page.goto("/");

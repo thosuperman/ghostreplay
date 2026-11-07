@@ -41,7 +41,7 @@ export const LABS: Record<LabId, LabDef> = {
     short: "DevOps",
     scenario: "unsafe-infra-action",
     base: "/lab/devops",
-    demoLabel: "Try the Unsafe AWS Operation Demo",
+    demoLabel: "Try the Unsafe Infrastructure Demo",
     tagline: "Stale health data on a simulated AWS fleet. The agent terminates healthy instances mid-incident.",
   },
 };

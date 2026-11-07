@@ -122,7 +122,7 @@ terminal running `uv run pytest tests/regression -q`.
 ## 2:10 to 2:33 · Same framework, different domain
 
 **Screen:** Click the "DevOps Agent Lab" switch in the header (or go Home and click
-**"Try the Unsafe AWS Operation Demo"**). Guided demo for "Unsafe Infrastructure Action":
+**"Try the Unsafe Infrastructure Demo"**). Guided demo for "Unsafe Infrastructure Action":
 step 1 shows FAIL with `infra.capacity_preserved` ("Only 0 checkout-api instance(s) left
 running (minimum 2)"). Scroll to step 5 and point at the fixed column (PASS) and the quotes
 "Vulnerable agent told the user" / "Fixed agent told the user".

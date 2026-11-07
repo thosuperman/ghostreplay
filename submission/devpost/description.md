@@ -62,7 +62,7 @@ Two applications are built on the same framework:
 | After the fix | 1 refund, reply matches the ledger | 3 instances running, 1 change proposal filed |
 
 Each lab has a **one-click guided demo** in the dashboard ("Try the Duplicate Refund Demo",
-"Try the Unsafe AWS Operation Demo"). One click runs the whole story with real, stored
+"Try the Unsafe Infrastructure Demo"). One click runs the whole story with real, stored
 executions: the incident, an offline replay, the root cause, the counterfactual on a healthy
 run, the fix, and the regression proof. The same story runs in a terminal with
 `uv run support-agent-lab demo` and `uv run devops-agent-lab demo`, and CI fails if any step
