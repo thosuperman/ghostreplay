@@ -129,10 +129,10 @@ says where its response came from: `live`, `recorded`, `injected` or `simulated`
 
 | Mode | What happens |
 |---|---|
-| `record` | The agent runs against the (simulated) world and every interaction is recorded. |
+| `record` | The agent runs against its world (in the labs, real local services) and every interaction is recorded. |
 | `replay` | Deterministic, offline. Responses come from the recording; handlers are stubs; sockets are blocked. |
 | `counterfactual-replay` | Offline replay with faults injected. It **stops at the first divergence** instead of guessing what the agent would have done next. |
-| `branch` | The prefix is replayed and verified, then the agent really re-executes against a fresh simulated environment. Needed for faults that require a real side effect, such as a timeout after commit. Labelled as a branch everywhere. |
+| `branch` | The prefix is replayed and verified, then the agent really re-executes against a fresh environment. Needed for faults that require a real side effect, such as a timeout after commit. Labelled as a branch everywhere. |
 
 Divergence is detected by interaction kind, name and a hash of the redacted request. When the
 agent asks for something different from the recording, GhostReplay records a `divergence`
@@ -272,8 +272,7 @@ The repository contains a `.kiro/` directory that documents the project for Kiro
   keep the dashboard's TypeScript types in sync with the Pydantic schema, run lint and format
   checks, and scan for secrets.
 
-These files were written to describe the implementation after it was built; the code itself
-was not generated in Kiro.
+Tasks marked `[x]` in the specs predate them; the open tasks are carried out in Kiro.
 
 <!-- TO BE COMPLETED BY THE AUTHOR after real Kiro sessions:
 Replace this comment with an honest account of what you actually did in Kiro. Describe only
@@ -294,8 +293,8 @@ the sentence above it if it no longer applies.
 
 - **Timeout after commit cannot be faked offline.** The refund really has to exist while the
   agent sees a timeout. Swapping a recorded response would lie about the world, so we built
-  branch mode: replay and verify the prefix, then re-execute against a fresh simulated
-  environment, and label every event `simulated`.
+  branch mode: replay and verify the prefix, then re-execute against a fresh environment of
+  real local services, and label every re-executed event as such.
 - **Not inventing continuations.** When a fault makes the agent take a different path, there
   is no recording for what comes next. Strict counterfactual replay therefore stops at the
   first divergence and reports it; only branch mode continues, by really running the agent.
@@ -323,10 +322,10 @@ More detail: `submission/devpost/challenges.md`.
   framework, each caught and fixed with the same workflow.
 - Regression tests generated from the incident that FAIL on the vulnerable agent and PASS
   on the fixed one, committed in `tests/regression/` and re-generated in CI.
-- 164 Python tests in the main suite on 2026-11-08: framework guarantees, the SDK, both labs,
-  generated regressions, deployment, public-session isolation, and every runnable code
-  block in the SDK docs. There are 8 more in the external invoice example, and 15 Playwright
-  tests drive the homepage, both guided demos, the Connect page, trace import and every
+- 189 Python tests in the main suite on 2026-11-09 (plus opt-in live-provider tests):
+  framework guarantees, the SDK, both labs, generated regressions, deployment, public-session
+  isolation, and every runnable code block in the SDK docs. There are 9 more in the external
+  invoice example, and 16 Playwright tests drive the homepage, both guided demos, the Connect page, trace import and every
   developer view (one of them applies only to the public site). Each security guarantee in
   the README is covered by a test.
 - A live, hardened deployment on AWS Lightsail with private per-visitor sessions, sandboxed

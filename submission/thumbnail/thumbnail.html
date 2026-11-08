@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- Video thumbnail (1280x720). The panel on the right is a real, unedited crop of
+     submission/gallery/02-refund-failure.png. Render with:
+     node apps/dashboard/scripts/render-thumbnail.mjs -->
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; }
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    color: #fff;
+    background:
+      radial-gradient(900px 600px at 85% 30%, rgba(139, 92, 246, 0.35), transparent 60%),
+      radial-gradient(700px 500px at 0% 100%, rgba(34, 211, 238, 0.18), transparent 60%),
+      #07080d;
+    position: relative;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(circle at 30% 50%, #000 30%, transparent 80%);
+  }
+  .brand { position: absolute; left: 64px; top: 52px; display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand svg { width: 52px; height: 52px; filter: drop-shadow(0 0 18px rgba(139,92,246,.7)); }
+  .brand span { color: #a1a1b5; font-weight: 500; }
+  .copy { position: absolute; left: 64px; top: 176px; width: 680px; }
+  .kicker { font: 600 22px "JetBrains Mono", monospace; color: #f87171; letter-spacing: .02em; text-transform: uppercase; }
+  h1 { margin-top: 18px; font-size: 72px; line-height: 1.06; font-weight: 900; letter-spacing: -0.035em; }
+  h1 .ok { color: #e5e7eb; }
+  h1 .bad { color: #f87171; }
+  .tag { margin-top: 34px; font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25;
+         background: linear-gradient(90deg, #c4b5fd, #67e8f9); -webkit-background-clip: text; color: transparent; }
+  .panel {
+    position: absolute; right: -130px; top: 196px; width: 720px;
+    border-radius: 18px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(248,113,113,.45), 0 0 60px rgba(248,113,113,.25);
+    transform: perspective(1400px) rotateY(-14deg) rotateZ(2deg);
+  }
+  .panel img { display: block; width: 100%; }
+  .stamp {
+    position: absolute; right: 96px; bottom: 96px;
+    font: 800 30px "JetBrains Mono", monospace; letter-spacing: .06em;
+    padding: 12px 22px; border-radius: 12px;
+    color: #4ade80; background: rgba(5, 46, 22, .85); border: 3px solid #4ade80;
+    transform: rotate(-6deg); box-shadow: 0 0 40px rgba(74,222,128,.35);
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="brand">
+    <svg viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><path d="M16 3C9.9 3 6 7.6 6 13.5V27l3.3-2.4L12.7 27l3.3-2.4 3.3 2.4 3.4-2.4L26 27V13.5C26 7.6 22.1 3 16 3z" fill="url(#g)"/><circle cx="12.5" cy="13.5" r="2" fill="#07080d"/><circle cx="19.5" cy="13.5" r="2" fill="#07080d"/></svg>
+    GhostReplay <span>Lab</span>
+  </div>
+  <div class="copy">
+    <div class="kicker">AI agent incident</div>
+    <h1>Asked for <span class="ok">$129</span>.<br/>Refunded <span class="bad">$258</span>.</h1>
+    <div class="tag">Replay the failure.<br/>Prove the fix.</div>
+  </div>
+  <div class="panel"><img src="failure-card.png" alt="" /></div>
+  <div class="stamp">FIX PROVEN ✓</div>
+</body>
+</html>

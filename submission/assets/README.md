@@ -25,13 +25,13 @@ What visual material exists in the repository, and what the author still has to 
 
 | Asset | How | Status |
 |---|---|---|
-| Demo video (under 3:00) | `submission/demo/recording-guide.md` and `video-script.md` | Not recorded. Replace `<VIDEO_URL>` once uploaded. |
+| Demo video (2:44) | `submission/demo/video/out/` (generated, git-ignored; see `submission/demo/video/README.md`) | Recorded. Upload it and replace `<VIDEO_URL>`. |
 | Kiro screenshots | Capture during real Kiro sessions (`docs/kiro-workflow.md`; items 15 to 18 in `submission/demo/screenshots-checklist.md`) | Not captured. Must be genuine. |
 | Terminal screenshots | Items 11 and 12 in the screenshots checklist | Not captured. |
 | CI screenshot | GitHub Actions run page | CI has run green on GitHub. Capture it after the latest commits are pushed. |
-| Deployed app screenshot and URL | https://ghostreplay.hayaix.tech | Deployed and verified. A screenshot taken on the live site is still to be captured. |
+| Deployed app screenshots | `submission/gallery/` (ten 3:2 captures of the live site, with captions) | Done. |
 | Social preview upload | Upload the PNG from `docs/assets/` in repository settings | Not uploaded. |
-| Video thumbnail (optional) | From the banner in `docs/assets/` or a frame of the video | Not produced. |
+| Video thumbnail | `submission/thumbnail/thumbnail.png` (1280 × 720) | Done. |
 
 ## Rules for all assets
 
