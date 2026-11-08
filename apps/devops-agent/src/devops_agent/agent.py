@@ -8,18 +8,27 @@ from typing import Any
 from ghostreplay import AgentResult, AgentRuntime, ToolError
 from ghostreplay.mocking import Message, ModelRequest, ToolCallRequest
 
-from .model import SYSTEM_PROMPT
+from .model import RUNBOOKS
 from .safety import DESTRUCTIVE, SafetyGate
 
 MAX_STEPS = 10
+#: Tools each version of the workflow exposes to the model.
 MODEL_VISIBLE_TOOLS = {
-    "cloudwatch.get_log_events",
-    "ec2.describe_instances",
-    "deploy.get_status",
-    "lambda.invoke",
-    "ec2.terminate_instances",
-    "deploy.rollback",
-    "change.propose",
+    "vulnerable": {
+        "cloudwatch.get_log_events",
+        "ec2.describe_instances",
+        "ec2.terminate_instances",
+    },
+    "fixed": {
+        "cloudwatch.get_log_events",
+        "ec2.describe_instances",
+        "ec2.get_instance_status",
+        "deploy.get_status",
+        "lambda.invoke",
+        "ec2.terminate_instances",
+        "deploy.rollback",
+        "change.propose",
+    },
 }
 
 
@@ -32,15 +41,15 @@ class DevOpsAgent:
         self.gate = SafetyGate() if variant == "fixed" else None
 
     def run(self, rt: AgentRuntime, task: dict[str, Any]) -> AgentResult:
-        tools = [s.schema() for s in rt.tools.specs() if s.name in MODEL_VISIBLE_TOOLS]
+        visible = MODEL_VISIBLE_TOOLS[self.variant]
+        tools = [s.schema() for s in rt.tools.specs() if s.name in visible]
+        system = RUNBOOKS[self.variant]
         messages = [Message(role="user", content=task["message"])]
         actions: list[dict[str, Any]] = []
         final = ""
         for _ in range(MAX_STEPS):
             result = rt.complete(
-                ModelRequest(
-                    model=rt.model_name, system=SYSTEM_PROMPT, messages=messages, tools=tools
-                )
+                ModelRequest(model=rt.model_name, system=system, messages=messages, tools=tools)
             )
             resp = result.response
             messages.append(Message.assistant(resp))

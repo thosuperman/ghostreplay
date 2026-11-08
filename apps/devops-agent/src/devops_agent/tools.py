@@ -1,14 +1,22 @@
-"""Mocked AWS-style tools for the DevOps agent."""
+"""Tools for the DevOps agent. Every call is a real HTTP request to the lab controller.
+
+The tool names mirror familiar cloud APIs, but they only ever reach the isolated lab on
+127.0.0.1 (see ``lab.py``). ``build_tools(None)`` returns the specifications only, for strict
+offline replay where no handler may run.
+"""
 
 from __future__ import annotations
 
+import time
 from typing import Any
+from urllib.parse import quote, urlencode
 
 from pydantic import BaseModel, Field
 
-from ghostreplay.mocking import MockAwsCloud, ToolRegistry, ToolSpec
+from ghostreplay.mocking import ToolRegistry, ToolSpec
 
-from .environment import AGENT_ROLE, SERVICE
+from .environment import SERVICE
+from .lab import InfraLab
 
 
 class GetLogs(BaseModel):
@@ -54,82 +62,118 @@ class ProposeChange(BaseModel):
     evidence: list[str] = Field(default_factory=list)
 
 
-def build_tools(cloud: MockAwsCloud) -> ToolRegistry:
+def build_tools(lab: InfraLab | None) -> ToolRegistry:
     reg = ToolRegistry()
+
+    def L() -> InfraLab:
+        if lab is None:  # pragma: no cover - offline registries never call handlers
+            raise RuntimeError("no lab: this registry is for offline replay only")
+        return lab
+
+    def timed(fn):  # record the real wall-clock latency of the HTTP call as the duration
+        def run(*a, **k):
+            t0 = time.perf_counter()
+            try:
+                return fn(*a, **k)
+            finally:
+                if lab is not None and lab.run_clock is not None:
+                    lab.run_clock.advance(round((time.perf_counter() - t0) * 1000, 1))
+
+        return run
 
     def capacity(args: dict[str, Any]) -> dict[str, Any]:
         targets = args.get("instance_ids") or []
+        insts = L().cloud.instances
         return {
-            "targets": {i: cloud.instances[i]["state"] for i in targets if i in cloud.instances},
+            "targets": {i: insts[i]["state"] for i in targets if i in insts},
             "running_instances": sum(
-                1
-                for i in cloud.instances.values()
-                if i["service"] == SERVICE and i["state"] == "running"
+                1 for i in insts.values() if i["service"] == SERVICE and i["state"] == "running"
             ),
         }
 
     reg.register(
         ToolSpec(
             "cloudwatch.get_log_events",
-            lambda log_group, limit=20, contains=None: cloud.get_log_events(
-                log_group, contains=contains, limit=limit
+            timed(
+                lambda log_group, limit=20, contains=None: L().get(
+                    "/v1/logs?"
+                    + urlencode(
+                        {
+                            "log_group": log_group,
+                            "limit": limit,
+                            **({"contains": contains} if contains else {}),
+                        }
+                    )
+                )
             ),
-            "Read recent log events (CloudWatch-like).",
-            "aws",
+            "Read recent log events from the lab controller.",
+            "http",
             args_model=GetLogs,
         )
     )
     reg.register(
         ToolSpec(
             "ec2.describe_instances",
-            lambda service: cloud.describe_instances(service),
+            timed(lambda service: L().get("/v1/instances?" + urlencode({"service": service}))),
             "List instances of a service with their aggregated status checks.",
-            "aws",
+            "http",
             args_model=Service,
         )
     )
     reg.register(
         ToolSpec(
             "ec2.get_instance_status",
-            lambda instance_id: cloud.get_instance_status(instance_id),
+            timed(lambda instance_id: L().get(f"/v1/instances/{quote(instance_id)}/status")),
             "Probe one instance directly (fresh status).",
-            "aws",
+            "http",
             args_model=InstanceId,
         )
     )
     reg.register(
         ToolSpec(
             "deploy.get_status",
-            lambda service: cloud.get_deployment(service),
+            timed(lambda service: L().get(f"/v1/deployments/{quote(service)}")),
             "Current and previous deployment for a service.",
-            "aws",
+            "http",
             args_model=Service,
         )
     )
     reg.register(
         ToolSpec(
             "lambda.invoke",
-            lambda function, payload=None: cloud.invoke(function, payload or {}),
+            timed(
+                lambda function, payload=None: L().post(
+                    f"/v1/functions/{quote(function)}/invoke", {"payload": payload or {}}
+                )
+            ),
             "Invoke a diagnostic function (Lambda-like).",
-            "aws",
+            "http",
             args_model=InvokeFn,
         )
     )
     reg.register(
         ToolSpec(
             "iam.simulate_permission",
-            lambda action, resource="*": cloud.simulate_permission(AGENT_ROLE, action, resource),
+            timed(
+                lambda action, resource="*": L().post(
+                    "/v1/iam/simulate", {"action": action, "resource": resource}
+                )
+            ),
             "Check whether the agent role may perform an action.",
-            "aws",
+            "http",
             args_model=SimulatePermission,
         )
     )
     reg.register(
         ToolSpec(
             "ec2.terminate_instances",
-            lambda instance_ids, reason: cloud.terminate_instances(AGENT_ROLE, instance_ids),
+            timed(
+                lambda instance_ids, reason: L().post(
+                    "/v1/instances/terminate", {"instance_ids": instance_ids, "reason": reason}
+                )
+            ),
             "Terminate instances (destructive).",
-            "aws",
+            "http",
             destructive=True,
             args_model=Terminate,
             observe=capacity,
@@ -138,9 +182,13 @@ def build_tools(cloud: MockAwsCloud) -> ToolRegistry:
     reg.register(
         ToolSpec(
             "deploy.rollback",
-            lambda service, reason: cloud.rollback(AGENT_ROLE, service),
+            timed(
+                lambda service, reason: L().post(
+                    f"/v1/deployments/{quote(service)}/rollback", {"reason": reason}
+                )
+            ),
             "Roll a service back to its previous version (destructive).",
-            "aws",
+            "http",
             destructive=True,
             args_model=Rollback,
         )
@@ -148,7 +196,7 @@ def build_tools(cloud: MockAwsCloud) -> ToolRegistry:
     reg.register(
         ToolSpec(
             "change.propose",
-            lambda **p: cloud.propose_change(AGENT_ROLE, **p),
+            timed(lambda **p: L().post("/v1/changes", p)),
             "File a change proposal for human approval (no infrastructure change).",
             "agent",
             args_model=ProposeChange,

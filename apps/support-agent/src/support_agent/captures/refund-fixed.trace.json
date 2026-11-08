@@ -1,0 +1,1887 @@
+{
+ "schema_version": "ghostreplay/v1",
+ "id": "rec_dd86e829b0",
+ "app": "support-agent",
+ "scenario": "duplicate-refund",
+ "variant": "fixed",
+ "agent": "support-agent/fixed",
+ "mode": "record",
+ "status": "completed",
+ "created_at": "2026-11-08T03:07:14.208687+00:00",
+ "started_at": "2026-10-31T09:00:00+00:00",
+ "duration_ms": 1228.7,
+ "provenance": {
+  "model_provider": "anthropic",
+  "model": "claude-opus-5-5",
+  "model_is_live": true,
+  "label": "Live LLM: Anthropic claude-opus-5-5 (effort medium)",
+  "tool_backends": "simulated (in-memory)"
+ },
+ "task": {
+  "ticket_id": "TCK-5521",
+  "customer_id": "CUS-0077",
+  "message": "Hi, my order ORD-1042 arrived yesterday and the Aurora earbuds case is cracked — one earbud won't charge. Can I get a refund for the earbuds? Thanks, Maya"
+ },
+ "output": {
+  "status": "success",
+  "message": "Hi Maya,\n\nI'm sorry your earbuds arrived with a cracked case. I've refunded them for you.\n\n**What I did:**\n- **Refunded:** Aurora wireless earbuds (SKU AUR-EB-01) from order ORD-1042\n- **Amount:** $129.00 USD, back to the payment method you used for this order\n- **Refund reference:** re_0001. The refund went through successfully.\n\nOur policy lets you refund damaged items within 30 days of delivery, so your earbuds qualified. The Lumen desk lamp from the same order wasn't changed. Refunds usually take a few business days to show up on your statement, depending on your bank.\n\nIf you'd like a replacement pair, or if anything else comes up with your order, just reply here.\n\nBest regards,\nCustomer Support",
+  "data": {
+   "refund": {
+    "id": "re_0001",
+    "payment_id": "pay_3KQ81",
+    "amount_cents": 12900,
+    "currency": "USD",
+    "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+    "sku": "AUR-EB-01",
+    "status": "succeeded",
+    "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+    "created_at": "2026-10-31T09:00:01+00:00",
+    "reconciled": true
+   }
+  }
+ },
+ "reference_execution_id": null,
+ "faults": [],
+ "conditions": {
+  "payment_gateway": "timeout_after_commit"
+ },
+ "events": [
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0000",
+   "parent_event_id": null,
+   "seq": 0,
+   "kind": "execution_start",
+   "name": "duplicate-refund",
+   "timestamp": "2026-10-31T09:00:00+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "framework",
+   "model": null,
+   "request": {
+    "ticket_id": "TCK-5521",
+    "customer_id": "CUS-0077",
+    "message": "Hi, my order ORD-1042 arrived yesterday and the Aurora earbuds case is cracked — one earbud won't charge. Can I get a refund for the earbuds? Thanks, Maya"
+   },
+   "response": null,
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": null,
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "mode": "record",
+    "variant": "fixed",
+    "conditions": {
+     "payment_gateway": "timeout_after_commit"
+    },
+    "faults": []
+   }
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0001",
+   "parent_event_id": null,
+   "seq": 1,
+   "kind": "state_snapshot",
+   "name": "initial",
+   "timestamp": "2026-10-31T09:00:00+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "framework",
+   "model": null,
+   "request": null,
+   "response": {
+    "payments": {
+     "captured": [
+      {
+       "payment_id": "pay_3KQ81",
+       "order_id": "ORD-1042",
+       "captured_cents": 28800,
+       "currency": "USD",
+       "status": "captured"
+      }
+     ],
+     "refunds": [],
+     "total_refunded_cents": 0
+    },
+    "orders": [
+     {
+      "order_id": "ORD-1042",
+      "customer_id": "CUS-0077",
+      "status": "delivered",
+      "placed_at": "2026-10-20T14:03:00+00:00",
+      "delivered_at": "2026-10-24T10:12:00+00:00",
+      "currency": "USD",
+      "payment_id": "pay_3KQ81",
+      "total_cents": 28800,
+      "items": [
+       {
+        "sku": "AUR-EB-01",
+        "name": "Aurora wireless earbuds",
+        "qty": 1,
+        "price_cents": 12900
+       },
+       {
+        "sku": "LUM-DL-02",
+        "name": "Lumen desk lamp",
+        "qty": 1,
+        "price_cents": 15900
+       }
+      ]
+     }
+    ],
+    "outbox": [],
+    "refund_attempts": [],
+    "audit_events": [],
+    "evidence": {
+     "database": "SQLite (fresh per run, fictional TEST DATA)",
+     "refund_service": "HTTP on 127.0.0.1",
+     "http_requests_received": 0,
+     "injected_fault": "refund service delays its response 2700 ms after committing (client timeout 1200 ms)"
+    }
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": null,
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0002",
+   "parent_event_id": null,
+   "seq": 2,
+   "kind": "model_call",
+   "name": "claude-opus-5-5",
+   "timestamp": "2026-10-31T09:00:00+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": "claude-opus-5-5",
+   "request": {
+    "model": "claude-opus-5-5",
+    "system": "You are a customer-support agent for an electronics store. Look up the order, check the refund policy for the item the customer mentions, issue a refund only if eligible, and reply to the customer with exactly what was done.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Hi, my order ORD-1042 arrived yesterday and the Aurora earbuds case is cracked — one earbud won't charge. Can I get a refund for the earbuds? Thanks, Maya",
+      "tool_calls": []
+     }
+    ],
+    "tools": [
+     {
+      "name": "orders.lookup_order",
+      "description": "Fetch an order and its customer.",
+      "category": "database",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id"
+       ],
+       "title": "LookupOrder",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.create_refund",
+      "description": "Issue a refund through the payment gateway (moves money).",
+      "category": "http",
+      "destructive": true,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        },
+        "amount_cents": {
+         "exclusiveMinimum": 0,
+         "maximum": 1000000,
+         "title": "Amount Cents",
+         "type": "integer"
+        },
+        "reason": {
+         "title": "Reason",
+         "type": "string"
+        },
+        "sku": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "default": null,
+         "title": "Sku"
+        }
+       },
+       "required": [
+        "payment_id",
+        "amount_cents",
+        "reason"
+       ],
+       "title": "CreateRefund",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.list_refunds",
+      "description": "List refunds already issued for a payment.",
+      "category": "http",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "payment_id"
+       ],
+       "title": "ListRefunds",
+       "type": "object"
+      }
+     },
+     {
+      "name": "refunds.check_eligibility",
+      "description": "Apply the refund policy to one order line.",
+      "category": "agent",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        },
+        "sku": {
+         "title": "Sku",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id",
+        "sku"
+       ],
+       "title": "CheckEligibility",
+       "type": "object"
+      }
+     }
+    ]
+   },
+   "response": {
+    "content": "",
+    "tool_calls": [
+     {
+      "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+      "name": "orders.lookup_order",
+      "arguments": {
+       "order_id": "ORD-1042"
+      }
+     }
+    ],
+    "stop_reason": "tool_use",
+    "usage": {
+     "cache_read_input_tokens": 0,
+     "input_tokens": 1044,
+     "output_tokens": 59
+    },
+    "provider_content": [
+     {
+      "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+      "input": {
+       "order_id": "ORD-1042"
+      },
+      "name": "orders__lookup_order",
+      "type": "tool_use",
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "served_by": "claude-opus-5-5"
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "0c339087c77428f1",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0003",
+   "parent_event_id": "rec_dd86e829b0.0002",
+   "seq": 3,
+   "kind": "tool_call",
+   "name": "orders.lookup_order",
+   "timestamp": "2026-10-31T09:00:00+00:00",
+   "duration_ms": 0.5,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": null,
+   "request": {
+    "order_id": "ORD-1042"
+   },
+   "response": {
+    "order_id": "ORD-1042",
+    "customer_id": "CUS-0077",
+    "status": "delivered",
+    "placed_at": "2026-10-20T14:03:00+00:00",
+    "delivered_at": "2026-10-24T10:12:00+00:00",
+    "currency": "USD",
+    "payment_id": "pay_3KQ81",
+    "total_cents": 28800,
+    "items": [
+     {
+      "sku": "AUR-EB-01",
+      "name": "Aurora wireless earbuds",
+      "qty": 1,
+      "price_cents": 12900
+     },
+     {
+      "sku": "LUM-DL-02",
+      "name": "Lumen desk lamp",
+      "qty": 1,
+      "price_cents": 15900
+     }
+    ],
+    "customer": {
+     "customer_id": "CUS-0077",
+     "name": "Maya Chen"
+    }
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "27793b24426a8426",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "category": "database"
+   }
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0004",
+   "parent_event_id": null,
+   "seq": 4,
+   "kind": "model_call",
+   "name": "claude-opus-5-5",
+   "timestamp": "2026-10-31T09:00:00.000500+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": "claude-opus-5-5",
+   "request": {
+    "model": "claude-opus-5-5",
+    "system": "You are a customer-support agent for an electronics store. Look up the order, check the refund policy for the item the customer mentions, issue a refund only if eligible, and reply to the customer with exactly what was done.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Hi, my order ORD-1042 arrived yesterday and the Aurora earbuds case is cracked — one earbud won't charge. Can I get a refund for the earbuds? Thanks, Maya",
+      "tool_calls": []
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+        "name": "orders.lookup_order",
+        "arguments": {
+         "order_id": "ORD-1042"
+        }
+       }
+      ],
+      "provider_content": [
+       {
+        "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+        "input": {
+         "order_id": "ORD-1042"
+        },
+        "name": "orders__lookup_order",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "content": "{\"currency\": \"USD\", \"customer\": {\"customer_id\": \"CUS-0077\", \"name\": \"Maya Chen\"}, \"customer_id\": \"CUS-0077\", \"delivered_at\": \"2026-10-24T10:12:00+00:00\", \"items\": [{\"name\": \"Aurora wireless earbuds\", \"price_cents\": 12900, \"qty\": 1, \"sku\": \"AUR-EB-01\"}, {\"name\": \"Lumen desk lamp\", \"price_cents\": 15900, \"qty\": 1, \"sku\": \"LUM-DL-02\"}], \"order_id\": \"ORD-1042\", \"payment_id\": \"pay_3KQ81\", \"placed_at\": \"2026-10-20T14:03:00+00:00\", \"status\": \"delivered\", \"total_cents\": 28800}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+      "name": "orders.lookup_order",
+      "data": {
+       "order_id": "ORD-1042",
+       "customer_id": "CUS-0077",
+       "status": "delivered",
+       "placed_at": "2026-10-20T14:03:00+00:00",
+       "delivered_at": "2026-10-24T10:12:00+00:00",
+       "currency": "USD",
+       "payment_id": "pay_3KQ81",
+       "total_cents": 28800,
+       "items": [
+        {
+         "sku": "AUR-EB-01",
+         "name": "Aurora wireless earbuds",
+         "qty": 1,
+         "price_cents": 12900
+        },
+        {
+         "sku": "LUM-DL-02",
+         "name": "Lumen desk lamp",
+         "qty": 1,
+         "price_cents": 15900
+        }
+       ],
+       "customer": {
+        "customer_id": "CUS-0077",
+        "name": "Maya Chen"
+       }
+      }
+     }
+    ],
+    "tools": [
+     {
+      "name": "orders.lookup_order",
+      "description": "Fetch an order and its customer.",
+      "category": "database",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id"
+       ],
+       "title": "LookupOrder",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.create_refund",
+      "description": "Issue a refund through the payment gateway (moves money).",
+      "category": "http",
+      "destructive": true,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        },
+        "amount_cents": {
+         "exclusiveMinimum": 0,
+         "maximum": 1000000,
+         "title": "Amount Cents",
+         "type": "integer"
+        },
+        "reason": {
+         "title": "Reason",
+         "type": "string"
+        },
+        "sku": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "default": null,
+         "title": "Sku"
+        }
+       },
+       "required": [
+        "payment_id",
+        "amount_cents",
+        "reason"
+       ],
+       "title": "CreateRefund",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.list_refunds",
+      "description": "List refunds already issued for a payment.",
+      "category": "http",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "payment_id"
+       ],
+       "title": "ListRefunds",
+       "type": "object"
+      }
+     },
+     {
+      "name": "refunds.check_eligibility",
+      "description": "Apply the refund policy to one order line.",
+      "category": "agent",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        },
+        "sku": {
+         "title": "Sku",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id",
+        "sku"
+       ],
+       "title": "CheckEligibility",
+       "type": "object"
+      }
+     }
+    ]
+   },
+   "response": {
+    "content": "",
+    "tool_calls": [
+     {
+      "id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+      "name": "refunds.check_eligibility",
+      "arguments": {
+       "order_id": "ORD-1042",
+       "sku": "AUR-EB-01"
+      }
+     },
+     {
+      "id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+      "name": "payments.list_refunds",
+      "arguments": {
+       "payment_id": "pay_3KQ81"
+      }
+     }
+    ],
+    "stop_reason": "tool_use",
+    "usage": {
+     "cache_read_input_tokens": 0,
+     "input_tokens": 1361,
+     "output_tokens": 149
+    },
+    "provider_content": [
+     {
+      "id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+      "input": {
+       "order_id": "ORD-1042",
+       "sku": "AUR-EB-01"
+      },
+      "name": "refunds__check_eligibility",
+      "type": "tool_use",
+      "caller": {
+       "type": "direct"
+      }
+     },
+     {
+      "id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+      "input": {
+       "payment_id": "pay_3KQ81"
+      },
+      "name": "payments__list_refunds",
+      "type": "tool_use",
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "served_by": "claude-opus-5-5"
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "68867cb62c0815db",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0005",
+   "parent_event_id": "rec_dd86e829b0.0004",
+   "seq": 5,
+   "kind": "tool_call",
+   "name": "refunds.check_eligibility",
+   "timestamp": "2026-10-31T09:00:00.000500+00:00",
+   "duration_ms": 5.3,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": null,
+   "request": {
+    "order_id": "ORD-1042",
+    "sku": "AUR-EB-01"
+   },
+   "response": {
+    "order_id": "ORD-1042",
+    "sku": "AUR-EB-01",
+    "eligible": true,
+    "reason": "within_policy",
+    "days_since_delivery": 6,
+    "refundable_amount_cents": 12900,
+    "payment_id": "pay_3KQ81",
+    "policy": "Damaged items are refundable within 30 days of delivery."
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "cc0971ff4caa5032",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "category": "agent"
+   }
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0006",
+   "parent_event_id": "rec_dd86e829b0.0004",
+   "seq": 6,
+   "kind": "tool_call",
+   "name": "payments.list_refunds",
+   "timestamp": "2026-10-31T09:00:00.005800+00:00",
+   "duration_ms": 12.2,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": null,
+   "request": {
+    "payment_id": "pay_3KQ81"
+   },
+   "response": {
+    "payment_id": "pay_3KQ81",
+    "data": [],
+    "count": 0
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "950115cb2d7f1100",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "category": "http"
+   }
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0007",
+   "parent_event_id": null,
+   "seq": 7,
+   "kind": "model_call",
+   "name": "claude-opus-5-5",
+   "timestamp": "2026-10-31T09:00:00.018000+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": "claude-opus-5-5",
+   "request": {
+    "model": "claude-opus-5-5",
+    "system": "You are a customer-support agent for an electronics store. Look up the order, check the refund policy for the item the customer mentions, issue a refund only if eligible, and reply to the customer with exactly what was done.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Hi, my order ORD-1042 arrived yesterday and the Aurora earbuds case is cracked — one earbud won't charge. Can I get a refund for the earbuds? Thanks, Maya",
+      "tool_calls": []
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+        "name": "orders.lookup_order",
+        "arguments": {
+         "order_id": "ORD-1042"
+        }
+       }
+      ],
+      "provider_content": [
+       {
+        "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+        "input": {
+         "order_id": "ORD-1042"
+        },
+        "name": "orders__lookup_order",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "content": "{\"currency\": \"USD\", \"customer\": {\"customer_id\": \"CUS-0077\", \"name\": \"Maya Chen\"}, \"customer_id\": \"CUS-0077\", \"delivered_at\": \"2026-10-24T10:12:00+00:00\", \"items\": [{\"name\": \"Aurora wireless earbuds\", \"price_cents\": 12900, \"qty\": 1, \"sku\": \"AUR-EB-01\"}, {\"name\": \"Lumen desk lamp\", \"price_cents\": 15900, \"qty\": 1, \"sku\": \"LUM-DL-02\"}], \"order_id\": \"ORD-1042\", \"payment_id\": \"pay_3KQ81\", \"placed_at\": \"2026-10-20T14:03:00+00:00\", \"status\": \"delivered\", \"total_cents\": 28800}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+      "name": "orders.lookup_order",
+      "data": {
+       "order_id": "ORD-1042",
+       "customer_id": "CUS-0077",
+       "status": "delivered",
+       "placed_at": "2026-10-20T14:03:00+00:00",
+       "delivered_at": "2026-10-24T10:12:00+00:00",
+       "currency": "USD",
+       "payment_id": "pay_3KQ81",
+       "total_cents": 28800,
+       "items": [
+        {
+         "sku": "AUR-EB-01",
+         "name": "Aurora wireless earbuds",
+         "qty": 1,
+         "price_cents": 12900
+        },
+        {
+         "sku": "LUM-DL-02",
+         "name": "Lumen desk lamp",
+         "qty": 1,
+         "price_cents": 15900
+        }
+       ],
+       "customer": {
+        "customer_id": "CUS-0077",
+        "name": "Maya Chen"
+       }
+      }
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+        "name": "refunds.check_eligibility",
+        "arguments": {
+         "order_id": "ORD-1042",
+         "sku": "AUR-EB-01"
+        }
+       },
+       {
+        "id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+        "name": "payments.list_refunds",
+        "arguments": {
+         "payment_id": "pay_3KQ81"
+        }
+       }
+      ],
+      "provider_content": [
+       {
+        "id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+        "input": {
+         "order_id": "ORD-1042",
+         "sku": "AUR-EB-01"
+        },
+        "name": "refunds__check_eligibility",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       },
+       {
+        "id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+        "input": {
+         "payment_id": "pay_3KQ81"
+        },
+        "name": "payments__list_refunds",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "content": "{\"days_since_delivery\": 6, \"eligible\": true, \"order_id\": \"ORD-1042\", \"payment_id\": \"pay_3KQ81\", \"policy\": \"Damaged items are refundable within 30 days of delivery.\", \"reason\": \"within_policy\", \"refundable_amount_cents\": 12900, \"sku\": \"AUR-EB-01\"}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+      "name": "refunds.check_eligibility",
+      "data": {
+       "order_id": "ORD-1042",
+       "sku": "AUR-EB-01",
+       "eligible": true,
+       "reason": "within_policy",
+       "days_since_delivery": 6,
+       "refundable_amount_cents": 12900,
+       "payment_id": "pay_3KQ81",
+       "policy": "Damaged items are refundable within 30 days of delivery."
+      }
+     },
+     {
+      "role": "tool",
+      "content": "{\"count\": 0, \"data\": [], \"payment_id\": \"pay_3KQ81\"}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+      "name": "payments.list_refunds",
+      "data": {
+       "payment_id": "pay_3KQ81",
+       "data": [],
+       "count": 0
+      }
+     }
+    ],
+    "tools": [
+     {
+      "name": "orders.lookup_order",
+      "description": "Fetch an order and its customer.",
+      "category": "database",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id"
+       ],
+       "title": "LookupOrder",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.create_refund",
+      "description": "Issue a refund through the payment gateway (moves money).",
+      "category": "http",
+      "destructive": true,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        },
+        "amount_cents": {
+         "exclusiveMinimum": 0,
+         "maximum": 1000000,
+         "title": "Amount Cents",
+         "type": "integer"
+        },
+        "reason": {
+         "title": "Reason",
+         "type": "string"
+        },
+        "sku": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "default": null,
+         "title": "Sku"
+        }
+       },
+       "required": [
+        "payment_id",
+        "amount_cents",
+        "reason"
+       ],
+       "title": "CreateRefund",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.list_refunds",
+      "description": "List refunds already issued for a payment.",
+      "category": "http",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "payment_id"
+       ],
+       "title": "ListRefunds",
+       "type": "object"
+      }
+     },
+     {
+      "name": "refunds.check_eligibility",
+      "description": "Apply the refund policy to one order line.",
+      "category": "agent",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        },
+        "sku": {
+         "title": "Sku",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id",
+        "sku"
+       ],
+       "title": "CheckEligibility",
+       "type": "object"
+      }
+     }
+    ]
+   },
+   "response": {
+    "content": "",
+    "tool_calls": [
+     {
+      "id": "toolu_01JDfTfH6UBsBksGkmyRhTvk",
+      "name": "payments.create_refund",
+      "arguments": {
+       "payment_id": "pay_3KQ81",
+       "amount_cents": 12900,
+       "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+       "sku": "AUR-EB-01"
+      }
+     }
+    ],
+    "stop_reason": "tool_use",
+    "usage": {
+     "cache_read_input_tokens": 0,
+     "input_tokens": 1721,
+     "output_tokens": 216
+    },
+    "provider_content": [
+     {
+      "signature": "CAQS0wUKEAgTGAI4AUIIdGhpbmtpbmcSDOzSIO2PCjJ0EUFRRBoM0mgIPJhkLdqnLQrbIjDUWF48/j477y4BIHsY2Tc84s5X8d8EzwtaaTAc+n5RlnkX5vbV7SrleGah7j+AlU0q8ATXkoqCSGb/mPWWz3LZL0OnBky8Q1ina3fR6C103UiytjaSGz7mY64AcavRH6EW6WdJO37OHT7q2wyF4h2fwWQxWCABtP5K7Kq1YOdWZAAfFQNFVe3sTOoA7/GDE31r/MYMyfoantHfGRWoxqWIVw0kTRo6lpOlTkXfmX7Flql/Tw8WIcfvRVc+kiD3dK+3/N6eSKjnrhsFpMBpdU+b2q3A6I3OGg8S2tEBZOOsix5mr4NIKZON8RXOTlKzVc9fcXXR/tLWCzYqkOW1kN1NVoiRWFx+mTBuD3lKwE43KQ6nQ/FHnNLjOWwjbxaxGLBg3yL7L01GDqcFOr32EV+6VK/RLn7Yfytnd7f227W3TzonZ8VErmaG6ou8bMtpSKkzZ9164Sp++2mq8yfGCMAzfeH3JJf4UyP4OLYVIcn7ryAuFSouzWF/+YvL7NpmZ8lqKDzKHAo17G2Z7uoLJIB3mYABZUKXZDhwMs/Hw9YdpL/TYkGdcoNXWvoOSFargw8fPL4iLwAcj1PBadX4UV1CehHcOJ9sF/A27LIna1/5P7MaraVkgMVE4Z81N/TjBDxDVQDMhj7RyF7lEnAFHNG1gaPcO+RaqMZhEDSvMGxxGaiVckEz7J5ofj6m5D0N/ZB06KR6XI1AHqIy2z0cR0by+NG3fBhqM5fDn3qHeWE4i/tKSiQ0t4UJr5/mXm/shK5dp6er9397OlvOapFtv4IeFFi/KKDAcWHwz8EG2mP1RJchH+ZgdZ9nPdSHGL74R+FfViM3iDZnu6FI3Bj8cmECEKf7neJbL4kX5pYJwhx5xvJZWej8rH8wpnlzibMK2vOXKYYYAQ==",
+      "thinking": "",
+      "type": "thinking"
+     },
+     {
+      "id": "toolu_01JDfTfH6UBsBksGkmyRhTvk",
+      "input": {
+       "payment_id": "pay_3KQ81",
+       "amount_cents": 12900,
+       "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+       "sku": "AUR-EB-01"
+      },
+      "name": "payments__create_refund",
+      "type": "tool_use",
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "served_by": "claude-opus-5-5"
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "d8b922c4fe53f0b8",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0008",
+   "parent_event_id": "rec_dd86e829b0.0007",
+   "seq": 8,
+   "kind": "tool_call",
+   "name": "payments.create_refund",
+   "timestamp": "2026-10-31T09:00:00.018000+00:00",
+   "duration_ms": 1205.4,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": null,
+   "request": {
+    "payment_id": "pay_3KQ81",
+    "amount_cents": 12900,
+    "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+    "sku": "AUR-EB-01",
+    "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900"
+   },
+   "response": null,
+   "error": {
+    "type": "ToolTimeout",
+    "message": "refund-service: POST /v1/refunds timed out after 1200 ms (no response received)",
+    "retryable": true,
+    "data": {
+     "service": "refund-service",
+     "timeout_ms": 1200
+    }
+   },
+   "state_before": {
+    "payment_id": "pay_3KQ81",
+    "refund_count": 0,
+    "refunded_cents": 0,
+    "refund_ids": []
+   },
+   "state_after": {
+    "payment_id": "pay_3KQ81",
+    "refund_count": 1,
+    "refunded_cents": 12900,
+    "refund_ids": [
+     "re_0001"
+    ]
+   },
+   "match_key": "06b26a5bcaf96447",
+   "destructive": true,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "category": "http"
+   }
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0009",
+   "parent_event_id": "rec_dd86e829b0.0007",
+   "seq": 9,
+   "kind": "agent_step",
+   "name": "ambiguous_failure",
+   "timestamp": "2026-10-31T09:00:01.223400+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "framework",
+   "model": null,
+   "request": {
+    "attempt": 1,
+    "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+    "action": "reconcile before retry"
+   },
+   "response": null,
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": null,
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0010",
+   "parent_event_id": "rec_dd86e829b0.0007",
+   "seq": 10,
+   "kind": "tool_call",
+   "name": "payments.list_refunds",
+   "timestamp": "2026-10-31T09:00:01.223400+00:00",
+   "duration_ms": 5.0,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": null,
+   "request": {
+    "payment_id": "pay_3KQ81"
+   },
+   "response": {
+    "payment_id": "pay_3KQ81",
+    "data": [
+     {
+      "id": "re_0001",
+      "payment_id": "pay_3KQ81",
+      "amount_cents": 12900,
+      "currency": "USD",
+      "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+      "sku": "AUR-EB-01",
+      "status": "succeeded",
+      "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+      "created_at": "2026-10-31T09:00:01+00:00"
+     }
+    ],
+    "count": 1
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "950115cb2d7f1100",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "category": "http"
+   }
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0011",
+   "parent_event_id": "rec_dd86e829b0.0007",
+   "seq": 11,
+   "kind": "agent_step",
+   "name": "recovered",
+   "timestamp": "2026-10-31T09:00:01.228400+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "framework",
+   "model": null,
+   "request": {
+    "recovers": "rec_dd86e829b0.0008",
+    "refund_id": "re_0001",
+    "how": "found committed refund by idempotency key"
+   },
+   "response": null,
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": null,
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0012",
+   "parent_event_id": null,
+   "seq": 12,
+   "kind": "model_call",
+   "name": "claude-opus-5-5",
+   "timestamp": "2026-10-31T09:00:01.228400+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": "claude-opus-5-5",
+   "request": {
+    "model": "claude-opus-5-5",
+    "system": "You are a customer-support agent for an electronics store. Look up the order, check the refund policy for the item the customer mentions, issue a refund only if eligible, and reply to the customer with exactly what was done.",
+    "messages": [
+     {
+      "role": "user",
+      "content": "Hi, my order ORD-1042 arrived yesterday and the Aurora earbuds case is cracked — one earbud won't charge. Can I get a refund for the earbuds? Thanks, Maya",
+      "tool_calls": []
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+        "name": "orders.lookup_order",
+        "arguments": {
+         "order_id": "ORD-1042"
+        }
+       }
+      ],
+      "provider_content": [
+       {
+        "id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+        "input": {
+         "order_id": "ORD-1042"
+        },
+        "name": "orders__lookup_order",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "content": "{\"currency\": \"USD\", \"customer\": {\"customer_id\": \"CUS-0077\", \"name\": \"Maya Chen\"}, \"customer_id\": \"CUS-0077\", \"delivered_at\": \"2026-10-24T10:12:00+00:00\", \"items\": [{\"name\": \"Aurora wireless earbuds\", \"price_cents\": 12900, \"qty\": 1, \"sku\": \"AUR-EB-01\"}, {\"name\": \"Lumen desk lamp\", \"price_cents\": 15900, \"qty\": 1, \"sku\": \"LUM-DL-02\"}], \"order_id\": \"ORD-1042\", \"payment_id\": \"pay_3KQ81\", \"placed_at\": \"2026-10-20T14:03:00+00:00\", \"status\": \"delivered\", \"total_cents\": 28800}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01DWBLKTrDtXEJ85jswm3V5a",
+      "name": "orders.lookup_order",
+      "data": {
+       "order_id": "ORD-1042",
+       "customer_id": "CUS-0077",
+       "status": "delivered",
+       "placed_at": "2026-10-20T14:03:00+00:00",
+       "delivered_at": "2026-10-24T10:12:00+00:00",
+       "currency": "USD",
+       "payment_id": "pay_3KQ81",
+       "total_cents": 28800,
+       "items": [
+        {
+         "sku": "AUR-EB-01",
+         "name": "Aurora wireless earbuds",
+         "qty": 1,
+         "price_cents": 12900
+        },
+        {
+         "sku": "LUM-DL-02",
+         "name": "Lumen desk lamp",
+         "qty": 1,
+         "price_cents": 15900
+        }
+       ],
+       "customer": {
+        "customer_id": "CUS-0077",
+        "name": "Maya Chen"
+       }
+      }
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+        "name": "refunds.check_eligibility",
+        "arguments": {
+         "order_id": "ORD-1042",
+         "sku": "AUR-EB-01"
+        }
+       },
+       {
+        "id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+        "name": "payments.list_refunds",
+        "arguments": {
+         "payment_id": "pay_3KQ81"
+        }
+       }
+      ],
+      "provider_content": [
+       {
+        "id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+        "input": {
+         "order_id": "ORD-1042",
+         "sku": "AUR-EB-01"
+        },
+        "name": "refunds__check_eligibility",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       },
+       {
+        "id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+        "input": {
+         "payment_id": "pay_3KQ81"
+        },
+        "name": "payments__list_refunds",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "content": "{\"days_since_delivery\": 6, \"eligible\": true, \"order_id\": \"ORD-1042\", \"payment_id\": \"pay_3KQ81\", \"policy\": \"Damaged items are refundable within 30 days of delivery.\", \"reason\": \"within_policy\", \"refundable_amount_cents\": 12900, \"sku\": \"AUR-EB-01\"}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01VEheD3Rc5rb6uKB7k9fj4L",
+      "name": "refunds.check_eligibility",
+      "data": {
+       "order_id": "ORD-1042",
+       "sku": "AUR-EB-01",
+       "eligible": true,
+       "reason": "within_policy",
+       "days_since_delivery": 6,
+       "refundable_amount_cents": 12900,
+       "payment_id": "pay_3KQ81",
+       "policy": "Damaged items are refundable within 30 days of delivery."
+      }
+     },
+     {
+      "role": "tool",
+      "content": "{\"count\": 0, \"data\": [], \"payment_id\": \"pay_3KQ81\"}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01QVV324ncWDFAHinAFj6Qei",
+      "name": "payments.list_refunds",
+      "data": {
+       "payment_id": "pay_3KQ81",
+       "data": [],
+       "count": 0
+      }
+     },
+     {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+       {
+        "id": "toolu_01JDfTfH6UBsBksGkmyRhTvk",
+        "name": "payments.create_refund",
+        "arguments": {
+         "payment_id": "pay_3KQ81",
+         "amount_cents": 12900,
+         "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+         "sku": "AUR-EB-01"
+        }
+       }
+      ],
+      "provider_content": [
+       {
+        "signature": "CAQS0wUKEAgTGAI4AUIIdGhpbmtpbmcSDOzSIO2PCjJ0EUFRRBoM0mgIPJhkLdqnLQrbIjDUWF48/j477y4BIHsY2Tc84s5X8d8EzwtaaTAc+n5RlnkX5vbV7SrleGah7j+AlU0q8ATXkoqCSGb/mPWWz3LZL0OnBky8Q1ina3fR6C103UiytjaSGz7mY64AcavRH6EW6WdJO37OHT7q2wyF4h2fwWQxWCABtP5K7Kq1YOdWZAAfFQNFVe3sTOoA7/GDE31r/MYMyfoantHfGRWoxqWIVw0kTRo6lpOlTkXfmX7Flql/Tw8WIcfvRVc+kiD3dK+3/N6eSKjnrhsFpMBpdU+b2q3A6I3OGg8S2tEBZOOsix5mr4NIKZON8RXOTlKzVc9fcXXR/tLWCzYqkOW1kN1NVoiRWFx+mTBuD3lKwE43KQ6nQ/FHnNLjOWwjbxaxGLBg3yL7L01GDqcFOr32EV+6VK/RLn7Yfytnd7f227W3TzonZ8VErmaG6ou8bMtpSKkzZ9164Sp++2mq8yfGCMAzfeH3JJf4UyP4OLYVIcn7ryAuFSouzWF/+YvL7NpmZ8lqKDzKHAo17G2Z7uoLJIB3mYABZUKXZDhwMs/Hw9YdpL/TYkGdcoNXWvoOSFargw8fPL4iLwAcj1PBadX4UV1CehHcOJ9sF/A27LIna1/5P7MaraVkgMVE4Z81N/TjBDxDVQDMhj7RyF7lEnAFHNG1gaPcO+RaqMZhEDSvMGxxGaiVckEz7J5ofj6m5D0N/ZB06KR6XI1AHqIy2z0cR0by+NG3fBhqM5fDn3qHeWE4i/tKSiQ0t4UJr5/mXm/shK5dp6er9397OlvOapFtv4IeFFi/KKDAcWHwz8EG2mP1RJchH+ZgdZ9nPdSHGL74R+FfViM3iDZnu6FI3Bj8cmECEKf7neJbL4kX5pYJwhx5xvJZWej8rH8wpnlzibMK2vOXKYYYAQ==",
+        "thinking": "",
+        "type": "thinking"
+       },
+       {
+        "id": "toolu_01JDfTfH6UBsBksGkmyRhTvk",
+        "input": {
+         "payment_id": "pay_3KQ81",
+         "amount_cents": 12900,
+         "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+         "sku": "AUR-EB-01"
+        },
+        "name": "payments__create_refund",
+        "type": "tool_use",
+        "caller": {
+         "type": "direct"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "content": "{\"amount_cents\": 12900, \"created_at\": \"2026-10-31T09:00:01+00:00\", \"currency\": \"USD\", \"id\": \"re_0001\", \"idempotency_key\": \"refund:TCK-5521:pay_3KQ81:12900\", \"payment_id\": \"pay_3KQ81\", \"reason\": \"Damaged on arrival: cracked charging case, one earbud won't charge\", \"reconciled\": true, \"sku\": \"AUR-EB-01\", \"status\": \"succeeded\"}",
+      "tool_calls": [],
+      "tool_call_id": "toolu_01JDfTfH6UBsBksGkmyRhTvk",
+      "name": "payments.create_refund",
+      "data": {
+       "id": "re_0001",
+       "payment_id": "pay_3KQ81",
+       "amount_cents": 12900,
+       "currency": "USD",
+       "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+       "sku": "AUR-EB-01",
+       "status": "succeeded",
+       "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+       "created_at": "2026-10-31T09:00:01+00:00",
+       "reconciled": true
+      }
+     }
+    ],
+    "tools": [
+     {
+      "name": "orders.lookup_order",
+      "description": "Fetch an order and its customer.",
+      "category": "database",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id"
+       ],
+       "title": "LookupOrder",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.create_refund",
+      "description": "Issue a refund through the payment gateway (moves money).",
+      "category": "http",
+      "destructive": true,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        },
+        "amount_cents": {
+         "exclusiveMinimum": 0,
+         "maximum": 1000000,
+         "title": "Amount Cents",
+         "type": "integer"
+        },
+        "reason": {
+         "title": "Reason",
+         "type": "string"
+        },
+        "sku": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "default": null,
+         "title": "Sku"
+        }
+       },
+       "required": [
+        "payment_id",
+        "amount_cents",
+        "reason"
+       ],
+       "title": "CreateRefund",
+       "type": "object"
+      }
+     },
+     {
+      "name": "payments.list_refunds",
+      "description": "List refunds already issued for a payment.",
+      "category": "http",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "payment_id": {
+         "title": "Payment Id",
+         "type": "string"
+        }
+       },
+       "required": [
+        "payment_id"
+       ],
+       "title": "ListRefunds",
+       "type": "object"
+      }
+     },
+     {
+      "name": "refunds.check_eligibility",
+      "description": "Apply the refund policy to one order line.",
+      "category": "agent",
+      "destructive": false,
+      "parameters": {
+       "properties": {
+        "order_id": {
+         "pattern": "^ORD-\\d{3,8}$",
+         "title": "Order Id",
+         "type": "string"
+        },
+        "sku": {
+         "title": "Sku",
+         "type": "string"
+        }
+       },
+       "required": [
+        "order_id",
+        "sku"
+       ],
+       "title": "CheckEligibility",
+       "type": "object"
+      }
+     }
+    ]
+   },
+   "response": {
+    "content": "Hi Maya,\n\nI'm sorry your earbuds arrived with a cracked case. I've refunded them for you.\n\n**What I did:**\n- **Refunded:** Aurora wireless earbuds (SKU AUR-EB-01) from order ORD-1042\n- **Amount:** $129.00 USD, back to the payment method you used for this order\n- **Refund reference:** re_0001. The refund went through successfully.\n\nOur policy lets you refund damaged items within 30 days of delivery, so your earbuds qualified. The Lumen desk lamp from the same order wasn't changed. Refunds usually take a few business days to show up on your statement, depending on your bank.\n\nIf you'd like a replacement pair, or if anything else comes up with your order, just reply here.\n\nBest regards,\nCustomer Support",
+    "tool_calls": [],
+    "stop_reason": "end_turn",
+    "usage": {
+     "cache_read_input_tokens": 0,
+     "input_tokens": 2103,
+     "output_tokens": 262
+    },
+    "provider_content": [
+     {
+      "text": "Hi Maya,\n\nI'm sorry your earbuds arrived with a cracked case. I've refunded them for you.\n\n**What I did:**\n- **Refunded:** Aurora wireless earbuds (SKU AUR-EB-01) from order ORD-1042\n- **Amount:** $129.00 USD, back to the payment method you used for this order\n- **Refund reference:** re_0001. The refund went through successfully.\n\nOur policy lets you refund damaged items within 30 days of delivery, so your earbuds qualified. The Lumen desk lamp from the same order wasn't changed. Refunds usually take a few business days to show up on your statement, depending on your bank.\n\nIf you'd like a replacement pair, or if anything else comes up with your order, just reply here.\n\nBest regards,\nCustomer Support",
+      "type": "text"
+     }
+    ],
+    "served_by": "claude-opus-5-5"
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "28255f7c6c9fb381",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0013",
+   "parent_event_id": null,
+   "seq": 13,
+   "kind": "tool_call",
+   "name": "crm.send_reply",
+   "timestamp": "2026-10-31T09:00:01.228400+00:00",
+   "duration_ms": 0.3,
+   "agent": "support-agent/fixed",
+   "source": "live",
+   "model": null,
+   "request": {
+    "customer_id": "CUS-0077",
+    "ticket_id": "TCK-5521",
+    "message": "Hi Maya,\n\nI'm sorry your earbuds arrived with a cracked case. I've refunded them for you.\n\n**What I did:**\n- **Refunded:** Aurora wireless earbuds (SKU AUR-EB-01) from order ORD-1042\n- **Amount:** $129.00 USD, back to the payment method you used for this order\n- **Refund reference:** re_0001. The refund went through successfully.\n\nOur policy lets you refund damaged items within 30 days of delivery, so your earbuds qualified. The Lumen desk lamp from the same order wasn't changed. Refunds usually take a few business days to show up on your statement, depending on your bank.\n\nIf you'd like a replacement pair, or if anything else comes up with your order, just reply here.\n\nBest regards,\nCustomer Support"
+   },
+   "response": {
+    "queued": true,
+    "message_id": "msg_001"
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": "5bcf84667aaed888",
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "category": "agent"
+   }
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0014",
+   "parent_event_id": null,
+   "seq": 14,
+   "kind": "state_snapshot",
+   "name": "final",
+   "timestamp": "2026-10-31T09:00:01.228700+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "framework",
+   "model": null,
+   "request": null,
+   "response": {
+    "payments": {
+     "captured": [
+      {
+       "payment_id": "pay_3KQ81",
+       "order_id": "ORD-1042",
+       "captured_cents": 28800,
+       "currency": "USD",
+       "status": "captured"
+      }
+     ],
+     "refunds": [
+      {
+       "id": "re_0001",
+       "payment_id": "pay_3KQ81",
+       "amount_cents": 12900,
+       "currency": "USD",
+       "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+       "sku": "AUR-EB-01",
+       "status": "succeeded",
+       "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+       "created_at": "2026-10-31T09:00:01+00:00"
+      }
+     ],
+     "total_refunded_cents": 12900
+    },
+    "orders": [
+     {
+      "order_id": "ORD-1042",
+      "customer_id": "CUS-0077",
+      "status": "delivered",
+      "placed_at": "2026-10-20T14:03:00+00:00",
+      "delivered_at": "2026-10-24T10:12:00+00:00",
+      "currency": "USD",
+      "payment_id": "pay_3KQ81",
+      "total_cents": 28800,
+      "items": [
+       {
+        "sku": "AUR-EB-01",
+        "name": "Aurora wireless earbuds",
+        "qty": 1,
+        "price_cents": 12900
+       },
+       {
+        "sku": "LUM-DL-02",
+        "name": "Lumen desk lamp",
+        "qty": 1,
+        "price_cents": 15900
+       }
+      ]
+     }
+    ],
+    "outbox": [
+     {
+      "id": "msg_001",
+      "customer_id": "CUS-0077",
+      "ticket_id": "TCK-5521",
+      "message": "Hi Maya,\n\nI'm sorry your earbuds arrived with a cracked case. I've refunded them for you.\n\n**What I did:**\n- **Refunded:** Aurora wireless earbuds (SKU AUR-EB-01) from order ORD-1042\n- **Amount:** $129.00 USD, back to the payment method you used for this order\n- **Refund reference:** re_0001. The refund went through successfully.\n\nOur policy lets you refund damaged items within 30 days of delivery, so your earbuds qualified. The Lumen desk lamp from the same order wasn't changed. Refunds usually take a few business days to show up on your statement, depending on your bank.\n\nIf you'd like a replacement pair, or if anything else comes up with your order, just reply here.\n\nBest regards,\nCustomer Support",
+      "channel": "email (test outbox, never sent)"
+     }
+    ],
+    "refund_attempts": [
+     {
+      "attempt": 1,
+      "payment_id": "pay_3KQ81",
+      "amount_cents": 12900,
+      "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+      "outcome": "committed",
+      "http_status": 201,
+      "refund_id": "re_0001"
+     }
+    ],
+    "audit_events": [
+     {
+      "id": 1,
+      "actor": "refund-service",
+      "action": "refund.committed",
+      "detail": {
+       "amount_cents": 12900,
+       "refund_id": "re_0001"
+      }
+     },
+     {
+      "id": 2,
+      "actor": "fault-injector",
+      "action": "response.delayed_after_commit",
+      "detail": {
+       "client_timeout_ms": 1200,
+       "delay_ms": 2700,
+       "refund_id": "re_0001"
+      }
+     }
+    ],
+    "evidence": {
+     "database": "SQLite (fresh per run, fictional TEST DATA)",
+     "refund_service": "HTTP on 127.0.0.1",
+     "http_requests_received": 3,
+     "injected_fault": "refund service delays its response 2700 ms after committing (client timeout 1200 ms)"
+    }
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": null,
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {}
+  },
+  {
+   "schema_version": "ghostreplay/v1",
+   "execution_id": "rec_dd86e829b0",
+   "event_id": "rec_dd86e829b0.0015",
+   "parent_event_id": null,
+   "seq": 15,
+   "kind": "execution_end",
+   "name": "completed",
+   "timestamp": "2026-10-31T09:00:01.228700+00:00",
+   "duration_ms": 0.0,
+   "agent": "support-agent/fixed",
+   "source": "framework",
+   "model": null,
+   "request": null,
+   "response": {
+    "status": "success",
+    "message": "Hi Maya,\n\nI'm sorry your earbuds arrived with a cracked case. I've refunded them for you.\n\n**What I did:**\n- **Refunded:** Aurora wireless earbuds (SKU AUR-EB-01) from order ORD-1042\n- **Amount:** $129.00 USD, back to the payment method you used for this order\n- **Refund reference:** re_0001. The refund went through successfully.\n\nOur policy lets you refund damaged items within 30 days of delivery, so your earbuds qualified. The Lumen desk lamp from the same order wasn't changed. Refunds usually take a few business days to show up on your statement, depending on your bank.\n\nIf you'd like a replacement pair, or if anything else comes up with your order, just reply here.\n\nBest regards,\nCustomer Support",
+    "data": {
+     "refund": {
+      "id": "re_0001",
+      "payment_id": "pay_3KQ81",
+      "amount_cents": 12900,
+      "currency": "USD",
+      "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+      "sku": "AUR-EB-01",
+      "status": "succeeded",
+      "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+      "created_at": "2026-10-31T09:00:01+00:00",
+      "reconciled": true
+     }
+    }
+   },
+   "error": null,
+   "state_before": null,
+   "state_after": null,
+   "match_key": null,
+   "destructive": false,
+   "fault": null,
+   "replay": null,
+   "metadata": {
+    "consumed_recorded_interactions": 0
+   }
+  }
+ ],
+ "final_state": {
+  "payments": {
+   "captured": [
+    {
+     "payment_id": "pay_3KQ81",
+     "order_id": "ORD-1042",
+     "captured_cents": 28800,
+     "currency": "USD",
+     "status": "captured"
+    }
+   ],
+   "refunds": [
+    {
+     "id": "re_0001",
+     "payment_id": "pay_3KQ81",
+     "amount_cents": 12900,
+     "currency": "USD",
+     "reason": "Damaged on arrival: cracked charging case, one earbud won't charge",
+     "sku": "AUR-EB-01",
+     "status": "succeeded",
+     "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+     "created_at": "2026-10-31T09:00:01+00:00"
+    }
+   ],
+   "total_refunded_cents": 12900
+  },
+  "orders": [
+   {
+    "order_id": "ORD-1042",
+    "customer_id": "CUS-0077",
+    "status": "delivered",
+    "placed_at": "2026-10-20T14:03:00+00:00",
+    "delivered_at": "2026-10-24T10:12:00+00:00",
+    "currency": "USD",
+    "payment_id": "pay_3KQ81",
+    "total_cents": 28800,
+    "items": [
+     {
+      "sku": "AUR-EB-01",
+      "name": "Aurora wireless earbuds",
+      "qty": 1,
+      "price_cents": 12900
+     },
+     {
+      "sku": "LUM-DL-02",
+      "name": "Lumen desk lamp",
+      "qty": 1,
+      "price_cents": 15900
+     }
+    ]
+   }
+  ],
+  "outbox": [
+   {
+    "id": "msg_001",
+    "customer_id": "CUS-0077",
+    "ticket_id": "TCK-5521",
+    "message": "Hi Maya,\n\nI'm sorry your earbuds arrived with a cracked case. I've refunded them for you.\n\n**What I did:**\n- **Refunded:** Aurora wireless earbuds (SKU AUR-EB-01) from order ORD-1042\n- **Amount:** $129.00 USD, back to the payment method you used for this order\n- **Refund reference:** re_0001. The refund went through successfully.\n\nOur policy lets you refund damaged items within 30 days of delivery, so your earbuds qualified. The Lumen desk lamp from the same order wasn't changed. Refunds usually take a few business days to show up on your statement, depending on your bank.\n\nIf you'd like a replacement pair, or if anything else comes up with your order, just reply here.\n\nBest regards,\nCustomer Support",
+    "channel": "email (test outbox, never sent)"
+   }
+  ],
+  "refund_attempts": [
+   {
+    "attempt": 1,
+    "payment_id": "pay_3KQ81",
+    "amount_cents": 12900,
+    "idempotency_key": "refund:TCK-5521:pay_3KQ81:12900",
+    "outcome": "committed",
+    "http_status": 201,
+    "refund_id": "re_0001"
+   }
+  ],
+  "audit_events": [
+   {
+    "id": 1,
+    "actor": "refund-service",
+    "action": "refund.committed",
+    "detail": {
+     "amount_cents": 12900,
+     "refund_id": "re_0001"
+    }
+   },
+   {
+    "id": 2,
+    "actor": "fault-injector",
+    "action": "response.delayed_after_commit",
+    "detail": {
+     "client_timeout_ms": 1200,
+     "delay_ms": 2700,
+     "refund_id": "re_0001"
+    }
+   }
+  ],
+  "evidence": {
+   "database": "SQLite (fresh per run, fictional TEST DATA)",
+   "refund_service": "HTTP on 127.0.0.1",
+   "http_requests_received": 3,
+   "injected_fault": "refund service delays its response 2700 ms after committing (client timeout 1200 ms)"
+  }
+ },
+ "invariants": [
+  {
+   "id": "refund.no_duplicate",
+   "title": "A refund is never issued twice",
+   "status": "passed",
+   "severity": "critical",
+   "message": "1 refund(s) in the ledger, none duplicated.",
+   "explanation": "",
+   "evidence": [
+    "rec_dd86e829b0.0008"
+   ]
+  },
+  {
+   "id": "refund.within_order_total",
+   "title": "Refunds never exceed the amount paid",
+   "status": "passed",
+   "severity": "critical",
+   "message": "Refunded amounts are within the captured totals.",
+   "explanation": "",
+   "evidence": []
+  },
+  {
+   "id": "refund.retries_are_idempotent",
+   "title": "Refund retries are idempotent",
+   "status": "passed",
+   "severity": "high",
+   "message": "Every repeated refund attempt reused a single idempotency key.",
+   "explanation": "",
+   "evidence": []
+  },
+  {
+   "id": "reply.matches_ledger",
+   "title": "The reply matches the money that moved",
+   "status": "passed",
+   "severity": "medium",
+   "message": "Reply matches the ledger ($129.00).",
+   "explanation": "",
+   "evidence": []
+  },
+  {
+   "id": "errors.surfaced",
+   "title": "Tool failures are not silently ignored",
+   "status": "passed",
+   "severity": "high",
+   "message": "Every tool error was recovered or reported.",
+   "explanation": "",
+   "evidence": []
+  }
+ ],
+ "divergence": null,
+ "notes": [],
+ "title": "Fixed support agent, refund service times out after commit · genuine live capture, 2026-11-08"
+}

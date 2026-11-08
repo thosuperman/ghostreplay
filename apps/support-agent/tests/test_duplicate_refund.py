@@ -144,62 +144,78 @@ def test_cli_run_exit_codes(tmp_path):
     assert main(["--db", str(tmp_path), "run", "--variant", "vulnerable", "--incident"]) == 1
 
 
-# -- gateway semantics the fix relies on --------------------------------------------------
+# -- the real refund service (HTTP + SQLite) the fix relies on ------------------------------
+
+BODY = {
+    "payment_id": "pay_3KQ81",
+    "amount_cents": 12900,
+    "reason": "damaged_on_arrival",
+    "sku": "AUR-EB-01",
+}
 
 
-def _gateway():
+@pytest.fixture
+def world():
     from ghostreplay.core.clock import VirtualClock
     from support_agent.environment import SupportWorld
 
-    world = SupportWorld(VirtualClock())
-    body = {
-        "payment_id": "pay_3KQ81",
-        "amount_cents": 12900,
-        "reason": "damaged_on_arrival",
-        "sku": "AUR-EB-01",
-    }
-    return world, body
+    w = SupportWorld(VirtualClock())
+    yield w
+    w.close()
 
 
-def test_retry_without_idempotency_key_creates_a_duplicate_refund():
-    world, body = _gateway()
-    world.gateway.request("POST", "/v1/refunds", json=body)
-    world.gateway.request("POST", "/v1/refunds", json=body)
-    assert [r["amount_cents"] for r in world.refunds] == [12900, 12900]
+def _committed(w) -> list[tuple]:
+    """Read the ledger through a separate SQLite connection: what is really committed."""
+    import sqlite3
+
+    with sqlite3.connect(w.db_path) as conn:
+        return conn.execute(
+            "SELECT id, amount_cents, idempotency_key FROM refunds ORDER BY seq"
+        ).fetchall()
 
 
-def test_retry_with_same_idempotency_key_returns_the_original_refund():
-    world, body = _gateway()
-    headers = {"Idempotency-Key": "refund:T-1:pay_3KQ81:12900"}
-    first = world.gateway.request("POST", "/v1/refunds", json=body, headers=headers)
-    again = world.gateway.request("POST", "/v1/refunds", json=body, headers=headers)
+def test_refund_requests_really_travel_over_http_and_commit_in_sqlite(world):
+    refund = world.post_refund(BODY)
+    assert refund["id"] == "re_0001" and refund["amount_cents"] == 12900
+    assert world.service.requests == [{"method": "POST", "path": "/v1/refunds", "status": 201}]
+    assert _committed(world) == [("re_0001", 12900, None)]
+    listed = world.get_refunds("pay_3KQ81")
+    assert listed["count"] == 1 and listed["data"][0]["id"] == "re_0001"
+
+
+def test_retry_without_idempotency_key_creates_a_duplicate_refund(world):
+    world.post_refund(BODY)
+    world.post_refund(BODY)
+    assert [r[1] for r in _committed(world)] == [12900, 12900]
+
+
+def test_retry_with_same_idempotency_key_returns_the_original_refund(world):
+    first = world.post_refund(BODY, "refund:T-1:pay_3KQ81:12900")
+    again = world.post_refund(BODY, "refund:T-1:pay_3KQ81:12900")
     assert again["id"] == first["id"] and again["idempotent_replayed"] is True
-    assert len(world.refunds) == 1
+    assert len(_committed(world)) == 1
+    outcomes = [a["outcome"] for a in world.snapshot()["refund_attempts"]]
+    assert outcomes == ["committed", "idempotent_replay"]
 
 
-def test_reusing_idempotency_key_with_different_amount_is_rejected():
+def test_reusing_idempotency_key_with_different_amount_is_rejected(world):
     from ghostreplay import HttpError
 
-    world, body = _gateway()
-    headers = {"Idempotency-Key": "k-1"}
-    world.gateway.request("POST", "/v1/refunds", json=body, headers=headers)
+    world.post_refund(BODY, "k-1")
     with pytest.raises(HttpError) as info:
-        world.gateway.request(
-            "POST", "/v1/refunds", json={**body, "amount_cents": 100}, headers=headers
-        )
-    assert info.value.status == 409
-    assert len(world.refunds) == 1
+        world.post_refund({**BODY, "amount_cents": 100}, "k-1")
+    assert info.value.data["status"] == 409
+    assert len(_committed(world)) == 1
 
 
-def test_gateway_never_refunds_more_than_was_captured():
+def test_service_never_refunds_more_than_was_captured(world):
     from ghostreplay import HttpError
 
-    world, body = _gateway()
-    world.gateway.request("POST", "/v1/refunds", json={**body, "amount_cents": 28800})
+    world.post_refund({**BODY, "amount_cents": 28800})
     with pytest.raises(HttpError) as info:
-        world.gateway.request("POST", "/v1/refunds", json={**body, "amount_cents": 1})
-    assert info.value.status == 400
-    assert sum(r["amount_cents"] for r in world.refunds) == 28800
+        world.post_refund({**BODY, "amount_cents": 1})
+    assert info.value.data["status"] == 400
+    assert sum(r[1] for r in _committed(world)) == 28800
 
 
 def test_timeout_after_commit_really_commits_before_the_client_times_out():
@@ -207,22 +223,33 @@ def test_timeout_after_commit_really_commits_before_the_client_times_out():
     from ghostreplay.core.clock import VirtualClock
     from support_agent.environment import SupportWorld
 
-    world = SupportWorld(VirtualClock(), payment_gateway="timeout_after_commit")
-    _, body = _gateway()
-    with pytest.raises(ToolTimeout):
-        world.gateway.request("POST", "/v1/refunds", json=body)
-    assert len(world.refunds) == 1  # the money moved even though the client saw a timeout
+    w = SupportWorld(VirtualClock(), payment_gateway="timeout_after_commit")
+    try:
+        with pytest.raises(ToolTimeout):
+            w.post_refund(BODY)
+        # The client saw a timeout, but the transaction is committed in the database.
+        assert len(_committed(w)) == 1
+        assert [a["action"] for a in w.snapshot()["audit_events"]] == [
+            "refund.committed",
+            "response.delayed_after_commit",
+        ]
+    finally:
+        w.close()
 
 
-def test_replaying_the_duplicate_refund_never_touches_the_gateway(lab, monkeypatch):
-    from ghostreplay.mocking.http import MockHttpService
+def test_replaying_the_duplicate_refund_starts_no_service_and_writes_no_database(lab, monkeypatch):
+    import support_agent.environment as env_mod
+    from ghostreplay import labkit
 
     incident = lab.record(SC, "vulnerable", conditions={"payment_gateway": "timeout_after_commit"})
+    assert incident.final_state["payments"]["total_refunded_cents"] == 25800
 
     def forbidden(*_a, **_k):
-        raise AssertionError("gateway called during offline replay")
+        raise AssertionError("a real world, HTTP request or database was used during replay")
 
-    monkeypatch.setattr(MockHttpService, "request", forbidden)
+    monkeypatch.setattr(env_mod.SupportWorld, "__init__", forbidden)
+    monkeypatch.setattr(labkit, "http_json", forbidden)
+    monkeypatch.setattr(env_mod, "http_json", forbidden)
     rpl = lab.replay(incident.id)
     assert rpl.status == ExecutionStatus.COMPLETED
     assert diff_executions(incident, rpl).identical

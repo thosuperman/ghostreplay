@@ -84,13 +84,19 @@ class DuplicateRefundScenario(Scenario):
         }
 
     def build_environment(self, conditions: dict[str, str], clock: Clock) -> Environment:
+        """A fresh SQLite database and a running HTTP refund service for this execution."""
         world = SupportWorld(clock, payment_gateway=conditions.get("payment_gateway", "healthy"))
         return Environment(
             tools=build_tools(world),
             snapshot=world.snapshot,
             clock=clock,
             backends={"world": world},
+            close=world.close,
         )
+
+    def build_offline_environment(self, conditions: dict[str, str], clock: Clock) -> Environment:
+        """Strict replay: tool specs only. No database is created and no service is started."""
+        return Environment(tools=build_tools(None), snapshot=dict, clock=clock)
 
     def build_model(self) -> ScriptedModel:
         return build_model()

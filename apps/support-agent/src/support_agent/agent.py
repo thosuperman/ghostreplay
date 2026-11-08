@@ -18,6 +18,19 @@ MAX_STEPS = 8
 MAX_REFUND_ATTEMPTS = 3
 
 
+def _model_facing(schema: dict[str, Any]) -> dict[str, Any]:
+    """Tool schema as shown to the model. Idempotency is the application's job, so the model
+    is never asked for a key (a live model will otherwise invent one, which hides the bug the
+    vulnerable version represents and is not something the fixed version should rely on)."""
+    params = schema.get("parameters") or {}
+    props = params.get("properties") or {}
+    if "idempotency_key" not in props:
+        return schema
+    props = {k: v for k, v in props.items() if k != "idempotency_key"}
+    required = [r for r in params.get("required", []) if r != "idempotency_key"]
+    return {**schema, "parameters": {**params, "properties": props, "required": required}}
+
+
 def _error(exc: ToolError) -> dict[str, Any]:
     return {"error": exc.error_type, "message": exc.message}
 
@@ -31,7 +44,7 @@ class SupportAgent:
 
     # -- main loop ------------------------------------------------------------------------
     def run(self, rt: AgentRuntime, task: dict[str, Any]) -> AgentResult:
-        tools = [s.schema() for s in rt.tools.specs() if s.name != "crm.send_reply"]
+        tools = [_model_facing(s.schema()) for s in rt.tools.specs() if s.name != "crm.send_reply"]
         messages = [Message(role="user", content=task["message"])]
         refund: dict[str, Any] | None = None
         final = ""
@@ -91,8 +104,11 @@ class SupportAgent:
         """Retry on timeout with an identical, non-idempotent request.
 
         A timeout is ambiguous: the gateway may already have committed the refund. Retrying a
-        non-idempotent POST in that situation can move the money twice.
+        non-idempotent POST in that situation can move the money twice. This version of the
+        application's refund client has no idempotency support, so no key is ever sent. The
+        retry is the application's retry policy, not a model decision.
         """
+        args.pop("idempotency_key", None)
         last: ToolError | None = None
         for attempt in range(1, MAX_REFUND_ATTEMPTS + 1):
             try:

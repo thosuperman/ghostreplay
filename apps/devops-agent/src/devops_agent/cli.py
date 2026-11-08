@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 from ghostreplay.lab import Lab
 from ghostreplay.server.cli import lab_main
@@ -14,8 +15,14 @@ APP = "devops-agent"
 PORT = 8102
 
 
+#: Genuine live-model captures shipped with this lab (see scripts/capture_live.py).
+CAPTURES_DIR = Path(__file__).with_name("captures")
+
+
 def build_lab(store: SqliteStore) -> Lab:
-    return Lab(APP, [UnsafeInfraActionScenario()], store)
+    lab = Lab(APP, [UnsafeInfraActionScenario()], store)
+    lab.library_dir = CAPTURES_DIR
+    return lab
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,11 +1,18 @@
-"""Tools exposed to the support agent (all backed by the simulated world)."""
+"""Tools exposed to the support agent.
+
+Reads are SQL queries against the run's SQLite database; refunds are real HTTP requests to the
+local refund service (see ``environment.py``). ``build_tools(None)`` returns the same tool
+specifications without a world, for strict offline replay where no handler may run.
+"""
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from pydantic import BaseModel, Field
 
+from ghostreplay import HttpError
 from ghostreplay.mocking import ToolRegistry, ToolSpec
 
 from .environment import CLIENT_TIMEOUT_MS, SupportWorld
@@ -38,16 +45,30 @@ class SendReply(BaseModel):
     message: str = Field(max_length=4000)
 
 
-def build_tools(world: SupportWorld) -> ToolRegistry:
+def build_tools(world: SupportWorld | None) -> ToolRegistry:
     reg = ToolRegistry()
 
+    def timed(fn):  # record real wall-clock latency of real I/O as the event's duration
+        def run(*a, **k):
+            t0 = time.perf_counter()
+            try:
+                return fn(*a, **k)
+            finally:
+                if world is not None:
+                    world.clock.advance(round((time.perf_counter() - t0) * 1000, 1))
+
+        return run
+
+    def w() -> SupportWorld:
+        if world is None:  # pragma: no cover - offline registries never call handlers
+            raise RuntimeError("no world: this registry is for offline replay only")
+        return world
+
     def lookup_order(order_id: str) -> dict[str, Any]:
-        order = world.db.get("orders", order_id)
-        customer = world.db.get("customers", order["customer_id"])
-        return {
-            **order,
-            "customer": {"customer_id": customer["customer_id"], "name": customer["name"]},
-        }
+        order = w().order(order_id)
+        if order is None:
+            raise HttpError(f"orders-db: order {order_id} not found", data={"status": 404})
+        return {**order, "customer": w().customer(order["customer_id"])}
 
     def create_refund(
         payment_id: str,
@@ -56,48 +77,27 @@ def build_tools(world: SupportWorld) -> ToolRegistry:
         sku: str | None = None,
         idempotency_key: str | None = None,
     ) -> dict[str, Any]:
-        headers = {"Idempotency-Key": idempotency_key} if idempotency_key else {}
-        return world.gateway.request(
-            "POST",
-            "/v1/refunds",
-            json={
-                "payment_id": payment_id,
-                "amount_cents": amount_cents,
-                "reason": reason,
-                "sku": sku,
-            },
-            headers=headers,
-        )
+        body = {
+            "payment_id": payment_id,
+            "amount_cents": amount_cents,
+            "reason": reason,
+            "sku": sku,
+        }
+        return w().post_refund(body, idempotency_key)
 
     def list_refunds(payment_id: str) -> dict[str, Any]:
-        return world.gateway.request("GET", "/v1/refunds", params={"payment_id": payment_id})
+        return w().get_refunds(payment_id)
 
     def send_reply(customer_id: str, ticket_id: str, message: str) -> dict[str, Any]:
-        world.clock.advance(35)
-        msg = {
-            "id": f"msg_{len(world.outbox) + 1:03d}",
-            "customer_id": customer_id,
-            "ticket_id": ticket_id,
-            "message": message,
-            "channel": "email (simulated)",
-        }
-        world.outbox.append(msg)
-        return {"queued": True, "message_id": msg["id"]}
+        return w().queue_reply(customer_id, ticket_id, message)
 
     def ledger_for(args: dict[str, Any]) -> dict[str, Any]:
-        pid = args.get("payment_id")
-        refunds = [r for r in world.refunds if r["payment_id"] == pid]
-        return {
-            "payment_id": pid,
-            "refund_count": len(refunds),
-            "refunded_cents": sum(r["amount_cents"] for r in refunds),
-            "refund_ids": [r["id"] for r in refunds],
-        }
+        return w().ledger(args.get("payment_id"))
 
     reg.register(
         ToolSpec(
             "orders.lookup_order",
-            lookup_order,
+            timed(lookup_order),
             "Fetch an order and its customer.",
             "database",
             args_model=LookupOrder,
@@ -106,7 +106,7 @@ def build_tools(world: SupportWorld) -> ToolRegistry:
     reg.register(
         ToolSpec(
             "refunds.check_eligibility",
-            lambda order_id, sku: world.eligibility(order_id, sku),
+            timed(lambda order_id, sku: w().eligibility(order_id, sku)),
             "Apply the refund policy to one order line.",
             "agent",
             args_model=CheckEligibility,
@@ -115,7 +115,7 @@ def build_tools(world: SupportWorld) -> ToolRegistry:
     reg.register(
         ToolSpec(
             "payments.create_refund",
-            create_refund,
+            timed(create_refund),
             "Issue a refund through the payment gateway (moves money).",
             "http",
             destructive=True,
@@ -127,7 +127,7 @@ def build_tools(world: SupportWorld) -> ToolRegistry:
     reg.register(
         ToolSpec(
             "payments.list_refunds",
-            list_refunds,
+            timed(list_refunds),
             "List refunds already issued for a payment.",
             "http",
             args_model=ListRefunds,
@@ -136,7 +136,7 @@ def build_tools(world: SupportWorld) -> ToolRegistry:
     reg.register(
         ToolSpec(
             "crm.send_reply",
-            send_reply,
+            timed(send_reply),
             "Send the reply to the customer.",
             "agent",
             args_model=SendReply,
