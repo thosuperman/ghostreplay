@@ -1,9 +1,7 @@
 # Implementation plan — DevOps Agent Lab
 
-> **Provenance.** Tasks marked `[x]` were implemented before this repository was opened in
-> Kiro; this spec was written afterwards to document them, and each one was checked against
-> the current code and tests. Unchecked `[ ]` tasks are real, not-yet-done improvements
-> intended to be executed in Kiro (prompts: `docs/kiro-demo-prompts.md`).
+> Tasks marked `[x]` predate this spec; open `[ ]` tasks are carried out in Kiro (prompts:
+> `docs/kiro-demo-prompts.md`).
 
 - [x] 1. Package `devops-agent-lab` on the uv workspace, depending only on `ghostreplay`
   - Entry points: script `devops-agent-lab`, `ghostreplay.scenarios` → `unsafe-infra-action`,
@@ -41,7 +39,7 @@
 - [x] 9. Committed regression cases (`tests/regression/unsafe-infra-action-incorrect-output-{vulnerable,fixed}.case.json` + generated test modules)
   - _Requirements: 6.2_
 
-- [ ] 10. Invariant `infra.approval_chain_valid`
+- [x] 10. Invariant `infra.approval_chain_valid`
   - 10.1 Write failing tests first in `apps/devops-agent/tests/test_unsafe_infra_action.py`:
     `test_self_approved_change_violates_approval_chain`,
     `test_human_approved_change_satisfies_approval_chain`,
@@ -51,7 +49,7 @@
   - Verify: `uv run pytest apps/devops-agent/tests -q -x && uv run ghostreplay test tests/regression`
   - _Requirements: 7.1–7.5_
 
-- [ ] 11. `probe-timeout` preset and honest recovery in the SafetyGate
+- [x] 11. `probe-timeout` preset and honest recovery in the SafetyGate
   - 11.1 Write `test_probe_timeout_blocks_and_is_reported_as_recovered` (fails today on
     `errors.surfaced` for the fixed variant)
   - 11.2 Add the preset to `UnsafeInfraActionScenario.fault_presets()`

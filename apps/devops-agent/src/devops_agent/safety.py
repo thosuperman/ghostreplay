@@ -35,6 +35,15 @@ class SafetyGate:
                 verified[iid] = str(status.get("status_check"))
             except ToolError as exc:
                 verified[iid] = f"unknown ({exc.error_type})"
+                # Handled on purpose: an unverifiable target blocks the action below.
+                rt.log(
+                    "recovered",
+                    {
+                        "recovers": getattr(exc, "event_id", None),
+                        "how": "probe failed; target treated as unverified and the action blocked",
+                    },
+                    parent_event_id=parent,
+                )
         contradicted = [i for i, s in verified.items() if s != "impaired"]
         if contradicted:
             reasons.append(

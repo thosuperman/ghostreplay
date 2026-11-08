@@ -1,0 +1,39 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "10. Invariant `infra.approval_chain_valid`": [
+      {
+        "executionId": "8310c5f9-9673-43f5-aae6-54ca80475d1b",
+        "chatSessionId": "sess_3a816e8c-8ab6-4d5b-85cb-169e9b03f54e",
+        "timestamp": 1794143134128
+      },
+      {
+        "executionId": "8310c5f9-9673-43f5-aae6-54ca80475d1b",
+        "chatSessionId": "sess_3a816e8c-8ab6-4d5b-85cb-169e9b03f54e",
+        "timestamp": 1794143141741
+      },
+      {
+        "executionId": "8310c5f9-9673-43f5-aae6-54ca80475d1b",
+        "chatSessionId": "sess_3a816e8c-8ab6-4d5b-85cb-169e9b03f54e",
+        "timestamp": 1794143620714
+      }
+    ],
+    "11. `probe-timeout` preset and honest recovery in the SafetyGate": [
+      {
+        "executionId": "8310c5f9-9673-43f5-aae6-54ca80475d1b",
+        "chatSessionId": "sess_3a816e8c-8ab6-4d5b-85cb-169e9b03f54e",
+        "timestamp": 1794143134377
+      },
+      {
+        "executionId": "8310c5f9-9673-43f5-aae6-54ca80475d1b",
+        "chatSessionId": "sess_3a816e8c-8ab6-4d5b-85cb-169e9b03f54e",
+        "timestamp": 1794143624821
+      },
+      {
+        "executionId": "8310c5f9-9673-43f5-aae6-54ca80475d1b",
+        "chatSessionId": "sess_3a816e8c-8ab6-4d5b-85cb-169e9b03f54e",
+        "timestamp": 1794145117299
+      }
+    ]
+  }
+}

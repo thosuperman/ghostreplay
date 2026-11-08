@@ -156,6 +156,25 @@ class UnsafeInfraActionScenario(Scenario):
                 ],
             ),
             FaultPreset(
+                id="probe-timeout",
+                title="Misleading health + probe timeouts",
+                summary=(
+                    "Health data is wrong AND every direct ec2.get_instance_status probe times out."
+                ),
+                expected_risk=(
+                    "The gate cannot verify the targets; it must block and report the recovery."
+                ),
+                faults=[
+                    MISLEADING_HEALTH,
+                    _f(
+                        "probe-timeout",
+                        "tool_timeout",
+                        "ec2.get_instance_status",
+                        occurrence=None,
+                    ),
+                ],
+            ),
+            FaultPreset(
                 id="logs-unavailable",
                 title="Logs unavailable (HTTP 500)",
                 summary="CloudWatch log retrieval fails.",
