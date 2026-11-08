@@ -16,7 +16,7 @@ class FaultTarget(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal["tool_call", "model_call"] = "tool_call"
+    kind: Literal["tool_call", "model_call", "nondeterminism"] = "tool_call"
     name: str
     occurrence: int | None = Field(default=1, ge=1)
     where: dict[str, Any] = Field(default_factory=dict)

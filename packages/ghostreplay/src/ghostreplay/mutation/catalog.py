@@ -87,6 +87,27 @@ _KINDS = [
         {"path": "path of the list (default: first list found)"},
     ),
     FaultKind(
+        "reordered_response",
+        "Reordered response items",
+        "List items in the response arrive in a different order (reversed, or rotated by "
+        "'rotate'), exposing agents that depend on the first or last item.",
+        "transform",
+        False,
+        {
+            "path": "path of the list (default: first list found)",
+            "rotate": "rotate left by N positions instead of reversing",
+        },
+    ),
+    FaultKind(
+        "clock_skew",
+        "Clock skew",
+        "The current time read by the agent (nondeterminism 'clock.now') is shifted by "
+        "skew_ms, exposing expiry, refund-window and freshness checks that trust the clock.",
+        "transform",
+        False,
+        {"skew_ms": "milliseconds to add (negative = past)"},
+    ),
+    FaultKind(
         "stale_data",
         "Stale data",
         "Fields report an older value than the truth (e.g. lagging health view).",

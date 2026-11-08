@@ -86,14 +86,15 @@ def fault(
     *,
     occurrence: int | None = 1,
     where: dict[str, Any] | None = None,
-    target: Literal["tool_call", "model_call"] = "tool_call",
+    target: Literal["tool_call", "model_call", "nondeterminism"] = "tool_call",
     id: str | None = None,
     **params: Any,
 ) -> FaultSpec:
     """Build a :class:`FaultSpec`, e.g. ``fault("timeout_after_commit", "payments.pay")``.
 
-    ``kind`` is one of the 13 kinds in ``ghostreplay.mutation.CATALOG``; ``occurrence`` is
+    ``kind`` is one of the 15 kinds in ``ghostreplay.mutation.CATALOG``; ``occurrence`` is
     1-based (``None`` = every call); extra keyword arguments become the fault's ``params``.
+    For ``clock_skew`` use ``target="nondeterminism"`` and the name ``"clock.now"``.
     """
     if kind not in CATALOG:
         raise ValueError(f"unknown fault kind {kind!r}; known: {', '.join(CATALOG)}")

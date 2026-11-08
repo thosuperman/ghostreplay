@@ -11,9 +11,10 @@ fault("http_429", "orders.get", occurrence=None)  # every call
 fault("stale_data", "monitor.health", set={"status": "impaired"})  # replace response fields
 fault("tool_timeout", "kb.search", where={"q": "refunds"})  # only calls with these args
 fault("incorrect_output", "planner", target="model_call", set={"action": "delete"})
+fault("clock_skew", "clock.now", target="nondeterminism", skew_ms=-3_600_000)  # 1 h early
 ```
 
-## The 13 fault kinds
+## The 15 fault kinds
 
 | Kind | Simulates | Needs re-execution* |
 |---|---|---|
@@ -26,6 +27,8 @@ fault("incorrect_output", "planner", target="model_call", set={"action": "delete
 | `missing_field` | A response field is missing (`path`) | |
 | `null_value` | A response field is null (`path`) | |
 | `duplicate_response` | List items duplicated (`path`) | |
+| `reordered_response` | List items reversed, or rotated by `rotate` (`path`) | |
+| `clock_skew` | The time returned by `ghost.now()` is shifted by `skew_ms` (negative = past). Target `clock.now` with `target="nondeterminism"` | |
 | `stale_data` | Response fields replaced with stale values (`set`) | |
 | `incorrect_output` | Response fields replaced with wrong values (`set`) | |
 | `delayed_operation` | Added latency (`delay_ms`) | ✓ |

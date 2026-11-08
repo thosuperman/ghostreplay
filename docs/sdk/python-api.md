@@ -82,7 +82,7 @@ Calls you make from inside an agent:
 
 ## `fault(kind, tool, *, occurrence=1, where=None, target="tool_call", id=None, **params)`
 
-Builds a `FaultSpec`, for example `fault("timeout_after_commit", "payments.charge")`. See [failure injection](failure-injection.md) for the 13 kinds.
+Builds a `FaultSpec`, for example `fault("timeout_after_commit", "payments.charge")`. See [failure injection](failure-injection.md) for the 15 kinds. `target` is `"tool_call"`, `"model_call"` or `"nondeterminism"` (for `clock_skew` on `clock.now`).
 
 ## Invariants
 

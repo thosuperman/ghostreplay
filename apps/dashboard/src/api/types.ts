@@ -113,7 +113,7 @@ export interface Change {
 }
 
 export interface FaultTarget {
-  kind: "tool_call" | "model_call";
+  kind: "tool_call" | "model_call" | "nondeterminism";
   name: string;
   occurrence: number | null;
   where: Record<string, Json>;

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 import pytest
+from fastapi.testclient import TestClient
 
 from ghostreplay.core.clock import VirtualClock
 from ghostreplay.core.errors import RateLimited, ToolTimeout
 from ghostreplay.models import EventSource, ExecutionMode, ExecutionStatus, FaultSpec, FaultTarget
 from ghostreplay.mutation import CATALOG, apply_fault
+from ghostreplay.server import create_app
 
 
 def _fault(
@@ -36,8 +40,14 @@ def test_catalog_covers_required_faults():
         "permission_denied",
         "partial_success",
         "timeout_after_commit",
+        "reordered_response",
+        "clock_skew",
     }
     assert required <= set(CATALOG)
+    assert CATALOG["clock_skew"].strategy == "transform"
+    assert not CATALOG["clock_skew"].requires_branch
+    assert CATALOG["reordered_response"].strategy == "transform"
+    assert not CATALOG["reordered_response"].requires_branch
     assert CATALOG["timeout_after_commit"].requires_branch
     assert not CATALOG["http_500"].requires_branch
 
@@ -138,6 +148,97 @@ def test_transform_faults():
     assert resp["items"][0]["status"] == "ok"  # baseline untouched (deep copies)
     missing = _apply("missing_field", resp, path="nope")
     assert missing.response == resp and "not present" in missing.applied.description
+
+
+def test_reordered_response_reverses_or_rotates_without_touching_the_baseline():
+    resp = {"meta": {"page": 1}, "items": [{"id": 1}, {"id": 2}, {"id": 3}]}
+    reversed_ = _apply("reordered_response", resp)
+    assert [i["id"] for i in reversed_.response["items"]] == [3, 2, 1]
+    assert reversed_.applied.kind == "reordered_response" and reversed_.error is None
+    rotated = _apply("reordered_response", resp, path="items", rotate=1).response
+    assert [i["id"] for i in rotated["items"]] == [2, 3, 1]
+    assert [i["id"] for i in _apply("reordered_response", resp, rotate=-1).response["items"]] == [
+        3,
+        1,
+        2,
+    ]
+    assert [i["id"] for i in resp["items"]] == [1, 2, 3]  # baseline untouched
+    assert _apply("reordered_response", [1, 2, 3]).response == [3, 2, 1]  # top-level list
+
+
+def test_reordered_response_leaves_response_unchanged_when_path_is_missing_or_not_a_list():
+    resp = {"items": [1, 2], "total": 2}
+    missing = _apply("reordered_response", resp, path="nope")
+    assert missing.response == resp and "not present" in missing.applied.description
+    scalar = _apply("reordered_response", resp, path="total")
+    assert scalar.response == resp and "not a list" in scalar.applied.description
+    no_list = _apply("reordered_response", {"total": 2})
+    assert no_list.response == {"total": 2} and "no list" in no_list.applied.description
+
+
+def test_reordered_response_in_offline_counterfactual_is_injected(lab):
+    base = lab.record("toy-bank", "naive")
+    tool = next(e for e in base.events if e.kind.value == "tool_call")
+    cf = lab.counterfactual(base.id, [_fault("reordered_response", name=tool.name)], mode="replay")
+    assert cf.mode == ExecutionMode.COUNTERFACTUAL_REPLAY
+    faulted = next(e for e in cf.events if e.fault)
+    assert faulted.source == EventSource.INJECTED
+    assert faulted.fault.kind == "reordered_response"
+
+
+def test_faults_endpoint_lists_reordered_response(lab):
+    client = TestClient(create_app(lab))
+    kinds = {k["id"]: k for k in client.get("/api/faults").json()}
+    assert kinds["reordered_response"]["strategy"] == "transform"
+    assert set(kinds["reordered_response"]["params"]) == {"path", "rotate"}
+
+
+def test_clock_skew_shifts_iso_timestamps_and_keeps_their_format():
+    assert (
+        _apply("clock_skew", "2026-01-01T00:00:00+00:00", skew_ms=3_600_000).response
+        == "2026-01-01T01:00:00+00:00"
+    )
+    assert _apply("clock_skew", "2026-01-01T00:00:00Z", skew_ms=-1_500).response == (
+        "2025-12-31T23:59:58.500000Z"
+    )
+    assert _apply("clock_skew", "2026-01-01T00:00:00", skew_ms=1000).response == (
+        "2026-01-01T00:00:01"
+    )
+
+
+def test_clock_skew_leaves_non_timestamps_unchanged_with_a_note():
+    bad = _apply("clock_skew", "not a time", skew_ms=1000)
+    assert bad.response == "not a time" and "not an ISO timestamp" in bad.applied.description
+    obj = _apply("clock_skew", {"t": 1}, skew_ms=1000)
+    assert obj.response == {"t": 1} and "not an ISO timestamp" in obj.applied.description
+    no_skew = _apply("clock_skew", "2026-01-01T00:00:00Z")
+    assert no_skew.response == "2026-01-01T00:00:00Z" and "skew_ms" in no_skew.applied.description
+
+
+def test_clock_skew_on_clock_now_is_injected_and_offline_replay_still_matches(lab, counters):
+    base = lab.record("toy-bank", "naive")
+    recorded = next(e for e in base.events if e.name == "clock.now")
+    counters.handler_calls = counters.model_calls = 0
+    skew = FaultSpec(
+        id="t-clock_skew",
+        kind="clock_skew",
+        target=FaultTarget(kind="nondeterminism", name="clock.now"),
+        params={"skew_ms": -86_400_000},
+    )
+    cf = lab.counterfactual(base.id, [skew], mode="auto")
+    assert cf.mode == ExecutionMode.COUNTERFACTUAL_REPLAY  # replay-safe: stays offline
+    assert counters.handler_calls == 0 and counters.model_calls == 0
+    faulted = next(e for e in cf.events if e.fault)
+    assert faulted.kind.value == "nondeterminism" and faulted.name == "clock.now"
+    assert faulted.source == EventSource.INJECTED
+    assert faulted.replay.verdict == "substituted"
+    assert faulted.fault.original_response == recorded.response
+    shift = datetime.fromisoformat(recorded.response) - datetime.fromisoformat(faulted.response)
+    assert shift == timedelta(days=1)
+    # The toy agent ignores the time, so the rest of the recording is served unchanged.
+    assert cf.status == ExecutionStatus.COMPLETED and cf.divergence is None
+    others = [e for e in cf.events if e.is_interaction and e is not faulted]
+    assert others and all(e.replay.verdict == "matched" for e in others)
 
 
 def test_error_and_delay_faults():

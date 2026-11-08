@@ -16,7 +16,7 @@ packages/ghostreplay/src/ghostreplay/   shared framework (all real engine functi
   mocking/       ToolRegistry/ToolSpec allowlist, simulated HTTP service, database, AWS-like
                  cloud, ModelAdapter protocol + ScriptedModel
   llm/           optional live mode: LiveModelConfig (env), AnthropicModel adapter
-  mutation/      fault catalog (13 kinds) + FaultPlan + apply_fault
+  mutation/      fault catalog (15 kinds) + FaultPlan + apply_fault
   diff/          structural trace diff (alignment, typed entries, first divergence, behaviour)
   regression/    Invariant/Check/TraceView, RegressionCase/Report, runner, pytest + JUnit/JSON
   lab/           Scenario abstraction, registry (ghostreplay.scenarios entry points), Lab

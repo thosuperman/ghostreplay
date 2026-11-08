@@ -68,6 +68,8 @@ execution is labelled `branch`. A counterfactual is never presented as a recordi
 | `timeout_after_commit` | execute_then_error | **yes** | operation performed, agent sees timeout |
 | `http_429`, `http_500`, `auth_failure`, `permission_denied` | error | no | synthetic error |
 | `missing_field`, `null_value`, `stale_data`, `incorrect_output`, `duplicate_response` | transform | no | baseline response edited by JSON path (`*` wildcard) |
+| `reordered_response` | transform | no | list in the response reversed, or rotated by `rotate` (`path`, default: first list) |
+| `clock_skew` | transform | no | ISO timestamp from `clock.now` shifted by `skew_ms` (target kind `nondeterminism`) |
 | `delayed_operation` | delay | **yes** | latency added; past the tool timeout → timeout after commit |
 | `partial_success` | execute_then_error | **yes** | operation performed, partial failure reported |
 

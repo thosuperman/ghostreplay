@@ -13,7 +13,7 @@ runnable code block in these pages is executed by `tests/test_sdk_docs.py`.
 | [Tool wrapping](tool-wrapping.md) | `@ghost.tool` options, matching and async |
 | [Recording](recording.md) | Runs, storage, redaction, state |
 | [Replay](replay.md) | Strict offline replay, divergence, replay vs re-execution |
-| [Failure injection](failure-injection.md) | The 13 fault kinds and three ways to inject them |
+| [Failure injection](failure-injection.md) | The 15 fault kinds and three ways to inject them |
 | [Regression testing](regression-testing.md) | Cases, generated pytest modules, `ghostreplay test` |
 | [Trace import/export](trace-import-export.md) | Trace files, the CLI and import safety |
 | [CI integration](ci-integration.md) | GitHub Actions with real sample output |

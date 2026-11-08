@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
 from ..core.canonical import delete_path, get_path, set_path, to_jsonable
@@ -270,7 +271,46 @@ def _transform(kind_id: str, data: Any, params: dict[str, Any]) -> tuple[Any, st
             return data, f"'{path}' is not a list; response unchanged"
         doubled = [copy.deepcopy(i) for i in items for _ in range(2)]
         return (set_path(data, path, doubled) if path else doubled), ""
+    if kind_id == "reordered_response":
+        path = params.get("path")
+        path = str(path) if path is not None else _first_list_path(data)
+        if path is None:
+            return data, "no list in response; response unchanged"
+        items = get_path(data, path, _SENTINEL) if path else data
+        if items is _SENTINEL:
+            return data, f"path '{path}' not present; response unchanged"
+        if not isinstance(items, list):
+            return data, f"'{path}' is not a list; response unchanged"
+        rotate = params.get("rotate")
+        if rotate is None:
+            reordered = items[::-1]
+        else:
+            try:
+                n = int(rotate) % len(items) if items else 0
+            except (TypeError, ValueError):
+                return data, f"'rotate' must be an integer, got {rotate!r}; response unchanged"
+            reordered = items[n:] + items[:n]
+        return (set_path(data, path, reordered) if path else reordered), ""
+    if kind_id == "clock_skew":
+        return _skew_timestamp(data, params.get("skew_ms"))
     raise ValueError(kind_id)
+
+
+def _skew_timestamp(data: Any, skew: Any) -> tuple[Any, str]:
+    """Shift an ISO 8601 timestamp by ``skew`` milliseconds, keeping a trailing ``Z``."""
+    if isinstance(skew, bool) or not isinstance(skew, int | float):
+        return data, f"'skew_ms' must be a number, got {skew!r}; response unchanged"
+    if not isinstance(data, str):
+        return data, "response is not an ISO timestamp; response unchanged"
+    zulu = data.endswith(("Z", "z"))
+    try:
+        parsed = datetime.fromisoformat(data[:-1] + "+00:00" if zulu else data)
+    except ValueError:
+        return data, f"{data!r} is not an ISO timestamp; response unchanged"
+    shifted = (parsed + timedelta(milliseconds=skew)).isoformat()
+    if zulu:
+        shifted = shifted.removesuffix("+00:00") + "Z"
+    return shifted, ""
 
 
 _SENTINEL = object()

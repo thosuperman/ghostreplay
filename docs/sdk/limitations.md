@@ -29,7 +29,7 @@ GhostReplay doesn't simulate your backends. Branch-mode re-execution and `record
 
 ## Fault coverage
 
-The 13 fault kinds model common API and data failures. Some failures can't be expressed as a fault on a single call and are not modelled: process crashes, partial network partitions, clock skew, and concurrent writers. Faults that need the real operation (`timeout_after_commit`, `delayed_operation`, `partial_success`) can't be applied in a purely offline replay.
+The 15 fault kinds model common API and data failures. Clock skew is modelled only for time read through `ghost.now()` (`clock_skew`); code that reads the system clock directly isn't affected. Some failures can't be expressed as a fault on a single call and are not modelled: process crashes, partial network partitions and concurrent writers. Faults that need the real operation (`timeout_after_commit`, `delayed_operation`, `partial_success`) can't be applied in a purely offline replay.
 
 ## Distribution and versions
 

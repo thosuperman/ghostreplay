@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, LABS, type LabId } from "../api/client";
-import type { Execution, FaultKind, FaultSpec, GREvent, Json, RunResult, Scenario } from "../api/types";
+import type { Execution, FaultKind, FaultSpec, FaultTarget, GREvent, Json, RunResult, Scenario } from "../api/types";
 import { ExecutionPicker, InvariantList } from "../components/execution";
 import { FaultSummary } from "../components/FaultSummary";
 import { Badge, Button, Card, cx, Empty, ErrorBox, KindIcon, ModeBadge, SectionHeader, Select, Spinner, Verdict } from "../components/ui";
@@ -18,6 +18,8 @@ const DEFAULT_PARAMS: Record<string, Json> = {
   missing_field: { path: "" },
   null_value: { path: "" },
   duplicate_response: {},
+  reordered_response: {},
+  clock_skew: { skew_ms: 3600000 },
   stale_data: { set: {} },
   incorrect_output: { set: {} },
   delayed_operation: { delay_ms: 15000 },
@@ -25,6 +27,19 @@ const DEFAULT_PARAMS: Record<string, Json> = {
 };
 
 type Mode = "auto" | "replay" | "branch";
+
+const CALL_TARGETS: ReadonlySet<string> = new Set(["tool_call", "model_call"]);
+const NONDETERMINISM_TARGETS: ReadonlySet<string> = new Set(["nondeterminism"]);
+
+/** clock_skew breaks reads of the clock (nondeterminism events); every other kind breaks tool or model calls. */
+function targetKindsFor(kind: string): ReadonlySet<string> {
+  return kind === "clock_skew" ? NONDETERMINISM_TARGETS : CALL_TARGETS;
+}
+
+function faultTargetKind(e: GREvent): FaultTarget["kind"] {
+  if (e.kind === "model_call" || e.kind === "nondeterminism") return e.kind;
+  return "tool_call";
+}
 
 export function FailureLab({ lab, initialId }: { lab: LabId; initialId?: string }) {
   const list = useAsync(() => api.executions(lab), [lab]);
@@ -64,7 +79,10 @@ export function FailureLab({ lab, initialId }: { lab: LabId; initialId?: string 
     }
   }, [lab, refId]);
 
-  const targets = useMemo(() => reference?.events.filter((e) => e.kind === "tool_call" || e.kind === "model_call") ?? [], [reference]);
+  const targets = useMemo(() => {
+    const wanted = targetKindsFor(kind);
+    return reference?.events.filter((e) => wanted.has(e.kind)) ?? [];
+  }, [reference, kind]);
   const occurrence = (e: GREvent) => targets.filter((t) => t.name === e.name && t.seq <= e.seq).length;
   const kindDef: FaultKind | undefined = kinds.data?.find((k) => k.id === kind);
 
@@ -72,6 +90,7 @@ export function FailureLab({ lab, initialId }: { lab: LabId; initialId?: string 
     setKind(k);
     setPreset(undefined);
     setParams(JSON.stringify(DEFAULT_PARAMS[k] ?? {}, null, 2));
+    if (target && !targetKindsFor(k).has(target.kind)) setTarget(undefined);
   };
 
   const applyPreset = (id: string) => {
@@ -107,7 +126,7 @@ export function FailureLab({ lab, initialId }: { lab: LabId; initialId?: string 
         faults = [{
           id: `ui-${kind}-${target.seq}`,
           kind,
-          target: { kind: target.kind === "model_call" ? "model_call" : "tool_call", name: target.name, occurrence: occurrence(target), where: {} },
+          target: { kind: faultTargetKind(target), name: target.name, occurrence: occurrence(target), where: {} },
           params: parsed,
           description: "",
         }];
@@ -171,7 +190,7 @@ export function FailureLab({ lab, initialId }: { lab: LabId; initialId?: string 
 
       {reference && (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <Card title="1 · Choose the step to break" subtitle="Interactions from the recording (tool and model calls)">
+          <Card title="1 · Choose the step to break" subtitle={kind === "clock_skew" ? "Clock reads from the recording (nondeterminism events)" : "Interactions from the recording (tool and model calls)"}>
             <ol className="max-h-[34rem] overflow-auto">
               {targets.map((e) => {
                 const sel = target?.event_id === e.event_id;
