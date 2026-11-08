@@ -5,26 +5,26 @@ GhostReplay needs Python 3.12 or newer. The SDK is not published on PyPI yet. In
 ## From GitHub
 
 ```bash
-pip install "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay"
+pip install "ghostreplay @ git+https://github.com/thosuperman/ghostreplay@main#subdirectory=packages/ghostreplay"
 ```
 
 With uv:
 
 ```bash
-uv add "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay"
+uv add "ghostreplay @ git+https://github.com/thosuperman/ghostreplay@main#subdirectory=packages/ghostreplay"
 ```
 
 ## From a local checkout
 
 ```bash
-git clone https://github.com/thosuperman/ghost-replay.git
-pip install ./ghost-replay/packages/ghostreplay
+git clone https://github.com/thosuperman/ghostreplay.git
+pip install ./ghostreplay/packages/ghostreplay
 ```
 
 ## From a built wheel
 
 ```bash
-cd ghost-replay
+cd ghostreplay
 uv build packages/ghostreplay --out-dir dist      # or: python -m build packages/ghostreplay
 pip install dist/ghostreplay-0.1.0-py3-none-any.whl
 ```

@@ -24,8 +24,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://ghostreplay.hayaix.tech"
-Source = "https://github.com/thosuperman/ghost-replay"
-Documentation = "https://github.com/thosuperman/ghost-replay/tree/main/docs/sdk"
+Source = "https://github.com/thosuperman/ghostreplay"
+Documentation = "https://github.com/thosuperman/ghostreplay/tree/main/docs/sdk"
 
 [project.scripts]
 ghostreplay = "ghostreplay.cli:main"

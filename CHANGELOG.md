@@ -152,5 +152,5 @@ and a one-container deployment.
   (typecheck, build), Playwright end-to-end, and container smoke-test jobs.
 - `.kiro/` steering documents, per-component specs and agent hooks.
 
-[Unreleased]: https://github.com/thosuperman/ghost-replay/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/thosuperman/ghost-replay/releases/tag/v0.1.0
+[Unreleased]: https://github.com/thosuperman/ghostreplay/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/thosuperman/ghostreplay/releases/tag/v0.1.0

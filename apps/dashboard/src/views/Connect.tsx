@@ -5,7 +5,7 @@ import { CodeBlock } from "../components/CodeBlock";
 import { Badge } from "../components/ui";
 import { href } from "../lib/router";
 
-const REPO = "https://github.com/thosuperman/ghost-replay";
+const REPO = "https://github.com/thosuperman/ghostreplay";
 const DOCS = `${REPO}/tree/main/docs/sdk`;
 
 const STEPS = [
@@ -50,7 +50,7 @@ export function Connect() {
 
       <Section id="install" title="1. Install">
         <p>Install from the repository. The SDK is not on PyPI yet.</p>
-        <CodeBlock lang="bash" filename="shell" code={`pip install "ghostreplay @ git+${REPO}@main#subdirectory=packages/ghostreplay"\n\n# or from a local checkout\ngit clone ${REPO}.git\npip install ./ghost-replay/packages/ghostreplay`} />
+        <CodeBlock lang="bash" filename="shell" code={`pip install "ghostreplay @ git+${REPO}@main#subdirectory=packages/ghostreplay"\n\n# or from a local checkout\ngit clone ${REPO}.git\npip install ./ghostreplay/packages/ghostreplay`} />
         <p className="text-sm text-ink-400">Optional extras: <code className="font-mono">ghostreplay[server]</code> (HTTP API and dashboard backend) and <code className="font-mono">ghostreplay[live]</code> (Anthropic adapter for live LLM calls).</p>
       </Section>
 

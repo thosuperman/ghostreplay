@@ -7,7 +7,7 @@ import { Badge, Button, cx, ErrorBox, Spinner } from "../components/ui";
 import { href, type DemoId } from "../lib/router";
 import { DEMOS, replayEvidence, type Actor, type CaptureIds, type CompareRow, type Fact, type StoryLine } from "./guided/demos";
 
-const REPO = "https://github.com/thosuperman/ghost-replay";
+const REPO = "https://github.com/thosuperman/ghostreplay";
 const STEP_TITLES = ["Meet the agent", "Watch the failure", "Investigate", "Replay safely", "Test the fix", "Verify the fix"];
 
 interface State {

@@ -8,7 +8,7 @@ proves that the corrected agent no longer makes it.
 
 - Live demo: https://ghostreplay.hayaix.tech
 - Video: `<VIDEO_URL>`
-- Source code (MIT): https://github.com/thosuperman/ghost-replay
+- Source code (MIT): https://github.com/thosuperman/ghostreplay
 
 ---
 

@@ -125,20 +125,20 @@ Making the repository public is the owner's decision and has consequences (the c
 history and issues become visible to everyone). Only if it is not already public:
 
 ```bash
-gh repo edit thosuperman/ghost-replay --visibility public --accept-visibility-change-consequences
+gh repo edit thosuperman/ghostreplay --visibility public --accept-visibility-change-consequences
 ```
 
 Repository metadata (adjust the website once deployed):
 
 ```bash
-gh repo edit thosuperman/ghost-replay \
+gh repo edit thosuperman/ghostreplay \
   --description "Break AI agents safely. Replay failures. Prove the fix. Deterministic replay and failure injection for tool-using AI agents." \
   --add-topic ai-agents --add-topic llm --add-topic testing --add-topic deterministic-replay \
   --add-topic fault-injection --add-topic regression-testing --add-topic kiro
 ```
 
 ```bash
-gh repo edit thosuperman/ghost-replay --homepage "https://ghostreplay.hayaix.tech"
+gh repo edit thosuperman/ghostreplay --homepage "https://ghostreplay.hayaix.tech"
 ```
 
 ## Repository presentation

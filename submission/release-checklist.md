@@ -83,7 +83,7 @@ gh run watch
       re-check with `gh repo view --json visibility`). If it must be changed:
 
   ```bash
-  gh repo edit thosuperman/ghost-replay --visibility public --accept-visibility-change-consequences
+  gh repo edit thosuperman/ghostreplay --visibility public --accept-visibility-change-consequences
   ```
 
 - [ ] Description, topics and homepage (see `submission/devpost/submission-checklist.md`).

@@ -7,7 +7,7 @@ This page takes about five minutes. Every code block on it runs as shown (they a
 ## 1. Install
 
 ```bash
-pip install "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay"
+pip install "ghostreplay @ git+https://github.com/thosuperman/ghostreplay@main#subdirectory=packages/ghostreplay"
 ```
 
 Python 3.12+. The SDK depends only on `pydantic`. See [installation](installation.md) for other options.

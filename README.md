@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/thosuperman/ghost-replay/actions/workflows/ci.yml"><img src="https://github.com/thosuperman/ghost-replay/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="https://github.com/thosuperman/ghostreplay/actions/workflows/ci.yml"><img src="https://github.com/thosuperman/ghostreplay/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/python-3.12%2B-3776ab" alt="Python 3.12+" />
   <img src="https://img.shields.io/badge/license-MIT-a78bfa" alt="MIT license" />
   <img src="https://img.shields.io/badge/runs-offline-22d3ee" alt="Runs offline" />
@@ -94,7 +94,7 @@ unsafe runbook).
 Prerequisites: Python ≥ 3.12, [uv](https://docs.astral.sh/uv/), Node ≥ 20 (pnpm via `corepack`).
 
 ```bash
-git clone https://github.com/thosuperman/ghost-replay.git && cd ghost-replay
+git clone https://github.com/thosuperman/ghostreplay.git && cd ghostreplay
 ./scripts/dev.sh
 ```
 
@@ -218,7 +218,7 @@ Each guarantee below is covered by tests in `packages/ghostreplay/tests` and `ap
 ## Use it in your own agent (Python SDK)
 
 ```bash
-pip install "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay"
+pip install "ghostreplay @ git+https://github.com/thosuperman/ghostreplay@main#subdirectory=packages/ghostreplay"
 ```
 
 ```python

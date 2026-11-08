@@ -18,7 +18,7 @@ All payments are simulated in memory.
 
 ```bash
 cd examples/invoice-agent
-pip install ../../packages/ghostreplay -e ".[test]"   # or: pip install "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay" -e ".[test]"
+pip install ../../packages/ghostreplay -e ".[test]"   # or: pip install "ghostreplay @ git+https://github.com/thosuperman/ghostreplay@main#subdirectory=packages/ghostreplay" -e ".[test]"
 invoice-agent-demo                                     # the whole workflow, step by step
 pytest                                                 # unit tests + generated regression tests
 ghostreplay test tests/regression --import invoice_agent.agent

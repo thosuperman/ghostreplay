@@ -146,7 +146,7 @@ export function Home() {
 
       <footer className="mx-auto mt-16 max-w-[1100px] border-t hairline pt-6 text-xs leading-relaxed text-ink-400">
         Guided demos re-execute genuine recorded Claude runs (this public server makes no paid model calls); tools run for real against isolated services on this server (SQLite, a local refund service, a local instance lab) with fictional test data. No real payment, refund or cloud operation ever happens, and every execution is labelled with what was live, recorded, scripted or injected. Open source under the MIT license ·{" "}
-        <a className="text-cyan-300 hover:underline" href="https://github.com/thosuperman/ghost-replay">GitHub</a>
+        <a className="text-cyan-300 hover:underline" href="https://github.com/thosuperman/ghostreplay">GitHub</a>
       </footer>
     </div>
   );

@@ -14,7 +14,7 @@ jobs:
           python-version: "3.12"
       - name: Install your agent and the GhostReplay SDK
         run: |
-          pip install "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay"
+          pip install "ghostreplay @ git+https://github.com/thosuperman/ghostreplay@main#subdirectory=packages/ghostreplay"
           pip install -e ".[test]"
       - name: Replay recorded incidents as regression tests
         run: ghostreplay test tests/regression --import invoice_agent.agent --junit reports/ghostreplay.xml
