@@ -9,6 +9,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Real execution.**
+  - The support lab runs on a real SQLite database and an HTTP refund service.
+  - The DevOps lab runs on three HTTP instance services and an allowlisted HTTP controller.
+  - Both run on 127.0.0.1, are created fresh per run, and are never started by a strict
+    replay.
+  - New `ghostreplay.labkit` building blocks for these services.
+- **Genuine Claude captures** shipped as a read-only library (`scripts/capture_live.py`).
+  `POST /api/runs/reexecute` re-runs a capture for real, serving its model decisions from
+  the recording.
+  - Guided demos are built on the captures, with actor-tagged stories and execution-type
+    labels.
+- **An opt-in live provider test** (`tests/live`) and live LLM extraction in the invoice
+  example.
+
+### Fixed
+
+- The Anthropic adapter sent every tool with an empty input schema, because it ignored the
+  `parameters` key, so live models could not pass arguments.
+- Responses served from a recorded injected fault keep their fault label in replay and
+  re-execution.
+- Provenance no longer reports "simulated (in-memory)" backends for scenarios that use real
+  services.
+
 - **Python SDK** (`ghostreplay.GhostReplay`).
   - Decorators for tools (sync and async), model functions, agents, invariants, and state and
     reset hooks; `new_id()`, `now()` and `step()`.

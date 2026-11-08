@@ -83,12 +83,29 @@ to the matching developer view. The same story also runs in a terminal with
 `uv run support-agent-lab demo` and `uv run devops-agent-lab demo`, and CI fails if any step
 produces an unexpected outcome.
 
-Everything runs offline by default. The demo agents use **scripted models**: deterministic
-policies that stand in for an LLM so the demo is free and reproducible. They are labelled
-`scripted` everywhere and never presented as live model output. An optional **live AI mode**
-drives the same agents with a real LLM through the Anthropic API (opt-in with
-`GHOSTREPLAY_LIVE=1`); the tools stay simulated, and replaying a live recording is fully
-offline and needs no API key.
+**What is real.**
+
+- **Model decisions.** In the guided demos they come from genuine Claude (`claude-opus-5-5`)
+  tool-calling runs, recorded live and shipped as read-only captures.
+- **Execution.** Each step re-executes a capture now, for real:
+  - the support agent talks to a SQLite database and a local HTTP refund service with
+    transactional commits and idempotency keys;
+  - the DevOps agent talks to three HTTP instance services and an allowlisted controller,
+    where health probes really call the instances and termination really shuts them down.
+- **Faults are injected and labelled:** the refund service's delayed response after
+  commit, the stale monitoring view, and a replaced model decision.
+- **What stays offline.** The public server makes no paid model calls. Live mode
+  (`GHOSTREPLAY_LIVE=1`) records new runs locally, and developer-mode recordings use a
+  labelled scripted model.
+
+Two findings came from the live runs:
+
+- Claude passed its own idempotency key when the tool schema allowed it, so the buggy app
+  now never offers one.
+- Claude refused the unsafe runbook, so the DevOps demo shows that decision and then tests
+  the workflow with an injected one.
+
+See `docs/real-execution.md`.
 
 ## How it works
 
@@ -191,10 +208,11 @@ catalog, diff engine, invariant and regression engine, pytest and JUnit generati
 storage, the HTTP API with SSE replay, the lab CLI (`serve`, `run`, `demo`, `export-cases`),
 the guided-demo orchestrator, the gateway, the live LLM adapter, and the whole dashboard.
 
-**App-specific (each lab):** a simulated world (a payment gateway and ledger, or a cloud with
-EC2-like instances, CloudWatch-like logs and a deploy API), its allowlisted tools, a scripted
-model policy, the agent harness in a vulnerable and a fixed variant, domain invariants,
-incident conditions and named fault presets.
+**App-specific (each lab):** its own world of real local services (a SQLite shop database
+and an HTTP refund service, or HTTP instance services and an allowlisted controller), its
+allowlisted tools, a scripted model policy for offline tests, the agent harness in a
+vulnerable and a fixed variant, domain invariants, incident conditions, named fault presets
+and its genuine Claude captures.
 
 Each lab plugs in through Python entry points (`ghostreplay.scenarios` and
 `ghostreplay.labs`) and runs on its own (`uv run support-agent-lab serve`) or alongside the

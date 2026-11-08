@@ -31,11 +31,11 @@ If a take shows different numbers, narrate what is on screen.
 
 **Screen:** "The Double Refund Incident". Step 1 shows the chat and the three tools. Click "Run the Agent". Step 2 appears.
 
-> A customer asks for a $129 refund. Our support agent can call real tools: find the order, check eligibility, issue the refund. Let's run it… The customer received $258. Two refunds committed. Safety status: FAIL.
+> A customer asks for a $129 refund. Claude decides which tools to call: find the order, check eligibility, issue the refund. These are real HTTP calls and real database writes on our server, replaying Claude's recorded decisions. The customer received $258. Two refunds committed in the database. Safety status: FAIL.
 
 **Point at:** the facts row, then the three highlighted story lines.
 
-> Here's what happened. The payment gateway committed the refund, but the response timed out. The agent assumed it had failed and retried the same request, with no idempotency key.
+> Here's what happened. The refund service committed the refund, but its response timed out. That's our injected fault. Claude asked for one refund; it was the application's retry policy that re-sent the request, with no idempotency key.
 
 ## 0:50–1:15 · Investigation
 
@@ -47,7 +47,7 @@ If a take shows different numbers, narrate what is on screen.
 
 ## 1:15–1:35 · Safe replay
 
-**Screen:** Step 4 facts: "Recorded responses reused" 9, "External tool executions" 0, "Divergence" None, "Replay result" Identical.
+**Screen:** Step 4 facts: "Model calls avoided", "Tool calls avoided", "Matched events", "Executed during replay" 0, identical.
 
 > Now we reproduce it offline. GhostReplay re-runs the agent but answers every model and tool call from the recording. Nine responses reused, zero calls to the payment service, and the result is identical. We can replay this incident as often as we like without refunding anyone again.
 
@@ -61,9 +61,9 @@ If a take shows different numbers, narrate what is on screen.
 
 ## 2:00–2:20 · Second application
 
-**Screen:** Click "Try DevOps Demo". Run through quickly: the failure headline "terminated 3 healthy servers", then step 5's "What the fixed agent did differently" list (direct probes ok, guard blocked termination, change waiting for human approval).
+**Screen:** Click "Try DevOps Demo", then "Run the Workflow": card 2a shows Claude's real reply declining the runbook. Click "Inject the unsafe decision": the failure headline "terminated 3 healthy servers". Jump to step 5's comparison ("Destructive call blocked: Yes").
 
-> Same framework, a completely different agent. A DevOps agent trusts stale monitoring data and terminates three healthy servers mid-incident. The fixed agent probes each instance directly, the safety guard blocks the termination, and it asks a human to approve a rollback instead. Every AWS action here is simulated.
+> Same framework, a different agent: an auto-remediation workflow with a bad runbook and stale monitoring. In our live run, Claude actually refused to follow it. That's a real recorded decision. But the workflow has no safeguard, so GhostReplay tests the workflow itself: inject the unsafe decision, and version 1 really shuts down three healthy services in the lab. Version 2's safety gate blocks the same decision and asks a human.
 
 ## 2:20–2:45 · Developer integration
 

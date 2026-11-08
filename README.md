@@ -46,15 +46,26 @@ once, and GhostReplay lets you run it again.
 | | **Support Agent Lab** — `apps/support-agent` | **DevOps Agent Lab** — `apps/devops-agent` |
 |---|---|---|
 | Demo | **Try the Duplicate Refund Demo** | **Try the Unsafe Infrastructure Demo** |
-| What goes wrong | The payment gateway commits a $129 refund, the response times out, the agent retries, and the customer is refunded $258. | A stale health view reports three healthy instances as impaired, and the agent terminates the whole fleet during a bad deploy. |
+| What goes wrong | Claude asks for one $129 refund. The local refund service commits it in SQLite but its response times out (injected delay); the app's retry policy re-sends the request, and the ledger shows $258 refunded. | Monitoring serves a stale view marking three healthy instances impaired (injected). In our live runs, Claude refused runbook v1's instruction to terminate them; with that decision injected, workflow v1 really shuts the instance services down. |
 | Detected by | `refund.no_duplicate`, `refund.retries_are_idempotent`, `reply.matches_ledger` | `infra.no_unverified_destructive_action`, `infra.capacity_preserved`, `infra.destructive_requires_approval` |
-| The fix | Intent-scoped idempotency key + reconciliation before retry | `SafetyGate`: direct verification, IAM check, blast-radius budget, human approval |
-| Backends | simulated payments gateway, orders DB, CRM | simulated AWS-like EC2, CloudWatch, IAM, Lambda, deploys |
+| The fix | Intent-scoped idempotency key + reconciliation before retry | Runbook v2 + `SafetyGate` in code: direct probes, IAM check, blast-radius budget, human approval |
+| Backends (real, on 127.0.0.1) | SQLite (orders, payments, refunds, refund attempts, audit events) + an HTTP refund service | Three HTTP instance services with `/health` + an HTTP controller with an allowlist of 9 operations |
 
 Both apps run on their own, with their own port, CLI, scenario and tests. Everything they
-share (recording, replay, mocking, faults, diffing, regression, storage, HTTP API) lives in
-`packages/ghostreplay`. Everything runs locally and offline, with no API keys, no cloud
-account and no paid model.
+share (recording, replay, mocking, faults, diffing, regression, storage, HTTP API, the local
+service toolkit) lives in `packages/ghostreplay`.
+
+### Real execution, honestly labelled
+
+The guided demos re-execute **genuine Claude runs** (recorded live, shipped as read-only
+captures): Claude's tool decisions are served from the capture, while every HTTP request, SQL
+write, health check and termination runs again for real on the server. Developer-mode
+recordings use a labelled scripted model; live mode calls Claude when you set a key. Every
+execution is labelled (live LLM execution, scripted demo, genuine capture, controlled fault
+injection, strict offline replay, re-execution, corrected re-execution). See
+[docs/real-execution.md](docs/real-execution.md) for exactly what is real, what is injected,
+and what our live runs taught us (Claude invented its own idempotency key, and refused an
+unsafe runbook).
 
 ## Features
 
@@ -66,7 +77,7 @@ account and no paid model.
   are never consumed out of order, and replay never guesses a continuation.
 - **Counterfactual Failure Lab.** 13 fault kinds can be injected at any recorded step.
   Faults that need a real side effect (*timeout after commit*) run as clearly labelled
-  **branch** executions against a fresh simulated environment.
+  **branch** executions against a fresh environment.
 - **Safety invariants** with passed / failed / inconclusive results, evidence events and
   explanations.
 - **Regression generation.** Any scenario becomes a JSON case plus a pytest module, with
@@ -159,17 +170,17 @@ says **where its response came from**:
 
 | Event source | Meaning |
 |---|---|
-| `live` | executed by the implementation (here, a simulated backend) while recording |
+| `live` | executed by the implementation (here, real local services) while recording |
 | `recorded` | served from the recording; nothing was executed |
 | `injected` | produced or altered by fault injection (the original response is kept on the event) |
-| `simulated` | re-executed against a fresh simulated backend in branch mode |
+| `simulated` | re-executed against fresh local services in branch mode (the name is historical: the work is real) |
 
 | Execution mode | Meaning |
 |---|---|
 | `record` | run and record |
 | `replay` | deterministic offline replay |
 | `counterfactual-replay` | offline replay with faults; **stops at the first divergence** |
-| `branch` | replayed prefix, then real re-execution against a fresh simulated environment |
+| `branch` | replayed prefix, then real re-execution against a fresh environment |
 
 The [record/replay sequence diagram](docs/assets/record-replay-sequence.png),
 [docs/architecture.md](docs/architecture.md) and [docs/diagrams.md](docs/diagrams.md) go deeper.
@@ -194,10 +205,13 @@ Each guarantee below is covered by tests in `packages/ghostreplay/tests` and `ap
 
 - Only interactions that go through `AgentRuntime` are replayed. Code that bypasses it is
   not replayed, and its network access is blocked during offline replay.
-- The demo agents use **scripted models**: deterministic policies that stand in for an LLM,
-  labelled `scripted` everywhere. Live AI mode is optional and opt-in.
-- Branch executions are real executions of the agent code against simulated backends, not
-  predictions of what production would have done.
+- The public guided demos re-execute **recorded** Claude decisions; they do not call the model
+  again, and a re-execution that leaves the recorded path stops instead of guessing. Live
+  model calls need `GHOSTREPLAY_LIVE=1` and a key. Developer-mode recordings and tests use a
+  labelled scripted model.
+- Branch executions are real executions of the agent code against fresh local services (a
+  test SQLite database, local HTTP services), not predictions of what production would do.
+- Some DevOps lab data (log lines, deploy history, IAM grants) are seeded fixtures.
 - GhostReplay does not capture hidden model reasoning or state it cannot observe. State
   snapshots come only from explicit `observe` hooks and backend snapshots.
 
@@ -330,8 +344,10 @@ steps meant to be built with Kiro. [docs/kiro-workflow.md](docs/kiro-workflow.md
 
 ## Security
 
-- All demo tools are in-memory simulations. There is no AWS SDK, no payment SDK and no
-  real credentials anywhere, and none are needed.
+- Demo tools talk only to disposable services on 127.0.0.1 (a test SQLite database, a local
+  refund service, a local instance lab). There is no AWS SDK, no payment SDK and no real
+  credentials on the server; on the server, systemd blocks all non-loopback network access
+  for the labs. The optional live AI key is used only locally to record captures.
 - Secrets are redacted before an event is stored; replay matching uses the same redaction.
 - Tools are allowlisted and argument-validated. Unknown tools are recorded as errors and
   not run.
