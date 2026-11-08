@@ -59,3 +59,14 @@ It is **not** a generic observability dashboard. Every screen answers one questi
 - **Hosted demo:** https://ghostreplay.hayaix.tech (AWS Lightsail, public deployment profile
   `GHOSTREPLAY_PUBLIC=1`, private expiring session per visitor). See
   #[[file:docs/deployment/AWS_LIGHTSAIL.md]]; container option in #[[file:docs/deployment.md]].
+
+## Positioning (current)
+
+- Tagline: "Catch the bug. Replay the failure. Prove the fix." A flight recorder and crash-test
+  lab for AI agents: an engineering tool for agent reliability, not a log viewer or chatbot.
+- Guided mode (`/demo/refund`, `/demo/devops`) for first-time visitors and judges; developer
+  mode keeps every technical view. Guided numbers must come from real executions.
+- Bring your own agent: the Python SDK (`ghostreplay.GhostReplay`) with explicit
+  instrumentation only. Never claim automatic instrumentation of arbitrary code.
+- The hosted server never executes visitor code; uploaded traces are inspection-only unless
+  they belong to a bundled scenario. See #[[file:docs/sdk/limitations.md]].

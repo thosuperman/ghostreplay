@@ -11,16 +11,27 @@
 
 <p align="center">
   <b>Live demo: <a href="https://ghostreplay.hayaix.tech">ghostreplay.hayaix.tech</a></b>
-  — no sign-up, no API keys. Click <i>Try the Duplicate Refund Demo</i> or
-  <i>Try the Unsafe Infrastructure Demo</i>.
+  — no sign-up, no API keys.<br/>
+  <a href="https://ghostreplay.hayaix.tech/demo/refund">Watch an AI agent fail</a> ·
+  <a href="https://ghostreplay.hayaix.tech/demo/devops">DevOps demo</a> ·
+  <a href="https://ghostreplay.hayaix.tech/connect">Connect your own agent</a>
 </p>
 
-**GhostReplay is an open-source deterministic replay and failure-testing framework for
-tool-using AI agents.** It records what an agent actually did and replays it offline
-without touching a single service. It injects the failures that happen in production
-(timeouts after commit, 429s, stale data, permission errors), flags dangerous behaviour
-with safety invariants, and turns the scenario into a pytest regression that proves the
-fix.
+**Catch the bug. Replay the failure. Prove the fix.** GhostReplay is a flight recorder and
+crash-test lab for AI agents.
+
+Your AI agent made a mistake. Maybe it refunded a customer twice, or deleted healthy
+servers. GhostReplay helps you deal with it:
+
+- It records exactly what the agent did.
+- It replays the incident offline without repeating the side effects.
+- It injects the failures that happen in production on purpose: timeouts after commit, 429s,
+  stale data, permission errors.
+- It flags dangerous behaviour with safety invariants.
+- It turns the incident into a pytest regression that proves your fix.
+
+It's an engineering tool for agent reliability, not a log viewer: logs tell you what happened
+once, and GhostReplay lets you run it again.
 
 ```
  Record ──▶ Replay offline ──▶ Inject a failure ──▶ Detect unsafe behaviour ──▶ Fix ──▶ Prove (pytest)
@@ -190,22 +201,54 @@ Each guarantee below is covered by tests in `packages/ghostreplay/tests` and `ap
 - GhostReplay does not capture hidden model reasoning or state it cannot observe. State
   snapshots come only from explicit `observe` hooks and backend snapshots.
 
-## Integrate your own agent
+## Use it in your own agent (Python SDK)
 
-[`examples/minimal_agent.py`](examples/minimal_agent.py) is a complete integration in
-about 100 lines:
+```bash
+pip install "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay"
+```
 
 ```python
-lab = Lab("example", [WeatherScenario()])
-rec = lab.record("weather", "default")
-rpl = lab.replay(rec.id)  # offline, identical
-cf = lab.counterfactual(
-    rec.id,
-    [FaultSpec(id="f", kind="http_500", target=FaultTarget(name="weather.get"))],
-    mode="branch",
-)
-print([i.status for i in cf.invariants])  # ['failed']: the agent hid the error
+from ghostreplay import GhostReplay
+
+ghost = GhostReplay("my-agent", storage="./ghostreplay-data")
+ORDERS = {"ORD-123": {"id": "ORD-123", "total_cents": 12900}}  # stands in for your order API
+
+
+@ghost.tool("orders.lookup")
+def lookup_order(order_id: str) -> dict:
+    return ORDERS[order_id]  # your real code runs here when recording
+
+
+@ghost.agent()
+def handle(task: dict) -> dict:
+    order = lookup_order(task["order_id"])  # routed through GhostReplay
+    return {"status": "success", "message": f"Found {order['id']}"}
+
+
+run = ghost.record({"order_id": "ORD-123"})  # executes and records
+again = ghost.replay(run)  # offline: lookup_order is NOT called
+print(again.status, again.live_calls, ghost.diff(run, again).identical)  # completed 0 True
 ```
+
+From there, three more steps:
+
+- Inject failures: `ghost.record(..., faults=[fault("timeout_after_commit", "payments.charge")])`.
+- Compare agents with `ghost.diff(...)`.
+- Write regression tests with `ghost.write_regression_test(...)`; they run offline in CI.
+
+GhostReplay records only the calls you route through `@ghost.tool` and `@ghost.model`. There
+is no automatic instrumentation.
+
+| Where to start | What it is |
+|---|---|
+| [docs/sdk/quickstart.md](docs/sdk/quickstart.md) | Five-minute quickstart. All 13 SDK pages have tested examples. |
+| [docs/sdk/examples/quickstart.py](docs/sdk/examples/quickstart.py) | Record → fault → replay → fix → regression in about 90 lines |
+| [examples/invoice-agent](examples/invoice-agent/README.md) | A separate Invoice Processing Agent built only on the public SDK |
+| `ghostreplay inspect / diff / replay --app / export / test --import` | The developer CLI ([docs/sdk/trace-import-export.md](docs/sdk/trace-import-export.md)) |
+| [docs/sdk/ci-integration.md](docs/sdk/ci-integration.md) | A GitHub Actions workflow with real sample output |
+
+The lower-level engine API (`Lab`, `Scenario`, `AgentRuntime`) is what the two bundled labs use.
+[`examples/minimal_agent.py`](examples/minimal_agent.py) shows it in about 100 lines.
 
 ## Testing
 
@@ -227,6 +270,14 @@ corepack pnpm --dir apps/dashboard e2e         # Playwright, against the real ga
 
 ```bash
 uv run ghostreplay test tests/regression --junit reports/junit.xml --json reports/report.json
+```
+
+The SDK and the external example, in a clean virtual environment (what the CI `sdk` job does):
+
+```bash
+uv build packages/ghostreplay --out-dir dist
+python -m venv /tmp/gr && /tmp/gr/bin/pip install dist/ghostreplay-*.whl -e "examples/invoice-agent[test]"
+cd examples/invoice-agent && /tmp/gr/bin/invoice-agent-demo && /tmp/gr/bin/pytest
 ```
 
 Regenerate the committed regression cases:
@@ -300,11 +351,12 @@ Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
 packages/ghostreplay/  the shared framework (+ guarantee tests)
 apps/support-agent/    Support Agent Lab (Duplicate Refund)
 apps/devops-agent/     DevOps Agent Lab (Unsafe Infrastructure)
-apps/dashboard/        React dashboard (+ Playwright e2e)
+apps/dashboard/        React dashboard: guided demos, developer tools (+ Playwright e2e)
+examples/invoice-agent/  external app built only on the public SDK
 deploy/lightsail/      production deployment: provisioning, Caddy, systemd, backups
 tests/                 generated regression cases, deployment and example tests
 examples/              bring-your-own-agent example
-docs/                  architecture, deployment (docs/deployment/), live AI, Kiro, assets
+docs/                  SDK docs (docs/sdk/), deployment (docs/deployment/), architecture, live AI, Kiro, assets
 submission/            hackathon submission materials
 ```
 

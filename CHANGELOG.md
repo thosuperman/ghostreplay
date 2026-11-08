@@ -9,6 +9,26 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Python SDK** (`ghostreplay.GhostReplay`).
+  - Decorators for tools (sync and async), model functions, agents, invariants, and state and
+    reset hooks; `new_id()`, `now()` and `step()`.
+  - `record`, strict offline `replay`, `inject` (fault injection, optionally re-executing
+    another agent), `diff`, trace `export` and `load`, and regression helpers that write
+    pytest modules.
+  - Only routed calls are recorded.
+- **CLI:** `ghostreplay inspect`, `diff`, `replay --app`, `export` and `test --import`.
+- **External example:** `examples/invoice-agent`, a separate Invoice Processing Agent that
+  depends only on the public SDK, with committed regression cases.
+- **Guided demos** at `/demo/refund` and `/demo/devops`: six steps (meet the agent, failure,
+  investigation, offline replay, fixed agent, regression verification), all driven by real
+  executions.
+- **New homepage**, a Guided / Developer mode switch, a Connect Your Agent page, and trace
+  import and download (session-scoped, validated, re-redacted, never executed).
+- **SDK documentation** in `docs/sdk/` (13 pages); every runnable code block is executed by
+  `tests/test_sdk_docs.py`.
+- **CI:** an `sdk` job that builds the wheel and runs the external example in a fresh virtual
+  environment.
+
 - Public demo deployed at https://ghostreplay.hayaix.tech on a dedicated AWS Lightsail
   instance (2 GB, `us-east-1`), with scripts in `deploy/lightsail/`:
   - provisioning, the Route 53 record and HTTPS via Caddy;
@@ -27,6 +47,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The core `ghostreplay` package now depends only on pydantic. FastAPI and uvicorn moved to
+  the `server` extra, which the bundled labs depend on.
+- Regression cases can carry the agent's task, and generated tests can import the app module.
 - The DevOps call to action is now "Try the Unsafe Infrastructure Demo".
 - The public profile no longer serves the OpenAPI docs and caps the replay stream's delay
   per event at 400 ms.

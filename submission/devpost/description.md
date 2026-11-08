@@ -1,6 +1,10 @@
 # GhostReplay Lab
 
-**Break AI agents safely. Replay failures. Prove the fix.**
+**Catch the bug. Replay the failure. Prove the fix.**
+
+A flight recorder and crash-test lab for AI agents. When an agent makes an expensive mistake,
+GhostReplay records what happened, reproduces it without repeating the side effects, and
+proves that the corrected agent no longer makes it.
 
 - Live demo: https://ghostreplay.hayaix.tech
 - Video: `<VIDEO_URL>`
@@ -61,10 +65,21 @@ Two applications are built on the same framework:
 | The fix | Intent-scoped idempotency key (`refund:<ticket>:<payment>:<amount>`) and reconciliation before any retry | A SafetyGate: fresh direct verification of each target, IAM check, blast-radius budget, mandatory human approval; the agent proposes a rollback instead |
 | After the fix | 1 refund, reply matches the ledger | 3 instances running, 1 change proposal filed |
 
-Each lab has a **one-click guided demo** in the dashboard ("Try the Duplicate Refund Demo",
-"Try the Unsafe Infrastructure Demo"). One click runs the whole story with real, stored
-executions: the incident, an offline replay, the root cause, the counterfactual on a healthy
-run, the fix, and the regression proof. The same story runs in a terminal with
+Each lab has a **six-step guided demo** for first-time visitors:
+[/demo/refund](https://ghostreplay.hayaix.tech/demo/refund) ("The Double Refund Incident") and
+[/demo/devops](https://ghostreplay.hayaix.tech/demo/devops) ("The AI Agent That Almost Deleted
+Healthy Servers"). It goes Meet the agent → Watch the failure → Investigate → Replay safely →
+Test the fix → Verify. Each step drives a real execution on the server:
+
+- recording the buggy agent;
+- a strict offline replay, which reports how many responses were reused and that 0 tools ran;
+- a fresh run of the fixed agent under the same failure;
+- a structural diff;
+- the regression tests.
+
+Every number and every plain-English line is derived from those executions. A Guided /
+Developer switch keeps the full developer dashboard one click away, and each guided step links
+to the matching developer view. The same story also runs in a terminal with
 `uv run support-agent-lab demo` and `uv run devops-agent-lab demo`, and CI fails if any step
 produces an unexpected outcome.
 
@@ -132,10 +147,20 @@ it), Counterfactual Failure Lab, Structural Diff, and Regression Results with py
 
 ### Deployment
 
-One container serves both labs and the dashboard. A Render Blueprint is included, and a
-public deployment profile (`GHOSTREPLAY_PUBLIC=1`) adds per-client rate limits, a cap on
-concurrent runs, a body size cap, execution retention limits, disables clearing data, and
-forces live AI mode off.
+The live demo runs on a dedicated AWS Lightsail instance (2 GB, `us-east-1`). Caddy handles
+HTTPS and serves the dashboard. Each lab runs as its own sandboxed systemd service with no
+network access beyond loopback, so it can't reach the cloud metadata endpoint or any AWS API.
+
+The public profile (`GHOSTREPLAY_PUBLIC=1`) adds:
+
+- per-client rate limits and a cap on concurrent runs;
+- body size and retention caps;
+- a private, expiring session for every visitor;
+- no data clearing, and live AI mode forced off.
+
+Uploaded traces are validated and stored for inspection only. The server never executes
+visitor code. A one-container option (Dockerfile, Render Blueprint) is included for other
+hosts.
 
 ## Why deterministic replay matters
 
@@ -177,6 +202,44 @@ other behind the gateway. At the time of writing, each lab is about 940 lines of
 against about 5,750 lines of framework, and neither lab contains any replay, fault, diff or
 regression logic of its own. A refund bug and an infrastructure outage are caught by the same
 code.
+
+## Bring your own agent: the Python SDK
+
+The labs prove the framework is reusable inside this repository. The SDK proves it outside.
+`GhostReplay` is a small decorator API over the same engine:
+
+```python
+from ghostreplay import GhostReplay, fault
+
+ghost = GhostReplay("my-agent", storage="./ghostreplay-data")
+
+
+@ghost.tool("payments.charge", destructive=True)
+def charge(order_id: str, amount_cents: int, key: str | None = None) -> dict: ...
+
+
+@ghost.agent("buggy")
+def run(task: dict) -> dict: ...
+
+
+incident = ghost.record(
+    task, agent="buggy", faults=[fault("timeout_after_commit", "payments.charge")]
+)
+ghost.replay(incident)  # offline: no decorated function is called
+ghost.write_regression_test(incident, "tests/regression", agent="fixed", import_module="my_agent")
+```
+
+It records only what you route through it. There's no automatic instrumentation, and the
+documentation says so. The core package depends only on pydantic; the HTTP server is an
+extra. A CLI covers `ghostreplay inspect`, `diff`, `replay --app`, `export` and
+`test --import`.
+
+`examples/invoice-agent` is a third, separate application that depends only on the public SDK.
+A payment commits but times out, the buggy agent pays $258 for a $129 invoice, the offline
+replay reproduces it with zero calls to the payment service, and the fixed agent passes the
+generated regression tests. CI builds the SDK wheel, installs it with the example into a fresh
+virtual environment, and runs all of this. Every code block in the SDK documentation
+(`docs/sdk/`) is executed by the test suite.
 
 ## How we used Kiro
 
@@ -242,11 +305,14 @@ More detail: `submission/devpost/challenges.md`.
   framework, each caught and fixed with the same workflow.
 - Regression tests generated from the incident that FAIL on the vulnerable agent and PASS
   on the fixed one, committed in `tests/regression/` and re-generated in CI.
-- 122 Python tests collected on 2026-11-07 (framework guarantees, both labs, generated
-  regressions, deployment and example), plus a Playwright end-to-end suite that drives both
-  guided demos and every dashboard view. Each security guarantee in the README is covered by
-  a test.
-- One-container deployment with a public profile designed for an open demo.
+- 164 Python tests in the main suite on 2026-11-08: framework guarantees, the SDK, both labs,
+  generated regressions, deployment, public-session isolation, and every runnable code
+  block in the SDK docs. There are 8 more in the external invoice example, and 15 Playwright
+  tests drive the homepage, both guided demos, the Connect page, trace import and every
+  developer view (one of them applies only to the public site). Each security guarantee in
+  the README is covered by a test.
+- A live, hardened deployment on AWS Lightsail with private per-visitor sessions, sandboxed
+  lab services and no network egress.
 
 ## What we learned
 
@@ -268,13 +334,14 @@ More detail: `submission/devpost/challenges.md`.
 - More fault kinds (for example partial pagination, out-of-order events, clock skew) and
   multi-fault scenarios.
 - Importing traces from existing observability formats as a starting point for replay.
-- A GitHub Action that runs exported regression cases and comments on pull requests.
+- Publishing the SDK to PyPI, and a GitHub Action that comments regression results on pull
+  requests.
 - More labs on the same skeleton (for example data pipelines and coding agents).
 
 ## Built with
 
 Python, uv, Pydantic, FastAPI, Uvicorn, SQLite, pytest, Ruff, TypeScript, React, Vite,
-Tailwind CSS, pnpm, Playwright, Docker, Render (deployment blueprint), GitHub Actions,
-Anthropic API (optional live mode), Kiro (steering, specs and hooks in `.kiro/`).
+Tailwind CSS, pnpm, Playwright, AWS Lightsail, Caddy, systemd, Route 53, Docker, GitHub
+Actions, Anthropic API (optional live mode), Kiro (steering, specs and hooks in `.kiro/`).
 
 See `submission/devpost/technologies.md` for versions.

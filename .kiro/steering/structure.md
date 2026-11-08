@@ -24,14 +24,20 @@ packages/ghostreplay/src/ghostreplay/   shared framework (all real engine functi
   storage/       SqliteStore (WAL, retention cap, ping), parse_document, safe import/export
   server/        create_app (per-lab HTTP API + SSE), ServerSettings/RateLimiter (public
                  profile), create_gateway (ghostreplay.labs entry points), lab_main CLI
-  cli.py         `ghostreplay scenarios | serve | test`
+  sdk.py         public SDK: GhostReplay (decorators, record/replay/inject/diff, traces,
+                 regression helpers), Run, fault(); invariants.py re-exports ready-made checks
+  cli.py         `ghostreplay inspect | diff | replay --app | export | test --import | scenarios | serve`
 packages/ghostreplay/tests/   framework guarantee tests (toy-bank scenario in toy.py)
 apps/support-agent/           Support Agent Lab — Duplicate Refund (support_agent package)
 apps/devops-agent/            DevOps Agent Lab — Unsafe Infrastructure Action (devops_agent)
 apps/dashboard/               React dashboard (src/api, src/components, src/lib, src/views)
 tests/regression/             committed regression cases (*.case.json + generated test_*.py)
 tests/                        deployment/gateway tests, public session isolation, example test, secret-scanner test
-examples/minimal_agent.py     bring-your-own-agent integration example
+examples/minimal_agent.py     engine-level (Lab/Scenario) integration example
+examples/invoice-agent/       separate project using only the public SDK (+ tests/regression)
+docs/sdk/                     SDK docs; every runnable block is executed by tests/test_sdk_docs.py
+apps/dashboard/src/views/     Home, GuidedDemo (+ guided/demos.ts), Connect, ImportTrace and the
+                              developer views (Explorer, Execution, Replay, FailureLab, Diff, Regression)
 scripts/                      dev.sh (start everything), secret_scan.py
 docs/                         architecture, deployment (+ docs/deployment/ for production), live AI, Kiro workflow
 deploy/lightsail/             production: provision, DNS, deploy/rollback, backups, Caddyfile, systemd units

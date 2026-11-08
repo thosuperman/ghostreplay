@@ -1,6 +1,8 @@
 # Tagline
 
-**Break AI agents safely. Replay failures. Prove the fix.**
+**Catch the bug. Replay the failure. Prove the fix.**
+
+A flight recorder and crash-test lab for AI agents.
 
 ## Short description (for the Devpost "elevator pitch" field, under 200 characters)
 
