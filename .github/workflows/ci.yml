@@ -92,7 +92,7 @@ jobs:
         run: |
           /tmp/sdk-venv/bin/python hello.py
           /tmp/sdk-venv/bin/python quickstart.py
-          /tmp/sdk-venv/bin/pytest -q -p no:cacheprovider tests/regression
+          /tmp/sdk-venv/bin/python -m pytest -q -p no:cacheprovider tests/regression  # cwd on sys.path
 
   dashboard:
     name: Dashboard — typecheck and build

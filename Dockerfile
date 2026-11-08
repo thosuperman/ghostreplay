@@ -10,6 +10,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/dashboard/package.json apps/dashboard/
 RUN corepack pnpm install --frozen-lockfile
 COPY apps/dashboard apps/dashboard
+# The homepage and Connect page embed the tested SDK examples verbatim (Vite ?raw imports).
+COPY docs/sdk/examples docs/sdk/examples
 RUN corepack pnpm --dir apps/dashboard build
 
 # ---- python runtime -----------------------------------------------------------------------
