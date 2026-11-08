@@ -213,11 +213,26 @@ def test_live_recording_replays_offline_without_calling_the_api(live_lab, fake):
     assert rpl.provenance.tool_backends.startswith("none")
 
 
-def test_branching_a_live_recording_requires_live_mode(live_lab, scenario):
+def test_reexecuting_a_live_capture_without_credentials_reuses_its_decisions(live_lab, scenario):
+    rec = live_lab.record(SC, "naive", model="live")
+    calls_before = len(live_lab.live.client.requests)
+    offline_only = Lab("toy", [scenario], live_lab.store)  # no live config at all
+    again = offline_only.reexecute(rec.id)
+    assert again.mode.value == "branch" and again.status == ExecutionStatus.COMPLETED
+    model_events = [e for e in again.events if e.kind.value == "model_call"]
+    assert model_events and all(e.source.value == "recorded" for e in model_events)
+    tool_events = [e for e in again.events if e.kind.value == "tool_call"]
+    assert tool_events and all(e.source.value == "simulated" for e in tool_events)
+    assert "genuine capture" in again.provenance.label and not again.provenance.model_is_live
+    assert len(live_lab.live.client.requests) == calls_before  # no new provider request
+
+
+def test_leaving_the_captured_path_without_live_mode_fails_loudly(live_lab, scenario):
     rec = live_lab.record(SC, "naive", model="live")
     offline_only = Lab("toy", [scenario], live_lab.store)
-    with pytest.raises(ValueError, match="live AI mode is not enabled"):
-        offline_only.counterfactual(rec.id, [], variant="safe", mode="branch")
+    branched = offline_only.counterfactual(rec.id, [], variant="safe", mode="branch")
+    assert branched.status == ExecutionStatus.FAILED
+    assert any(e.error and "needs a new model decision" in e.error.message for e in branched.events)
 
 
 def test_budget_exhaustion_fails_the_run_loudly(scenario):

@@ -6,6 +6,7 @@ from .model import (
     ModelAdapter,
     ModelRequest,
     ModelResponse,
+    RecordedDecisionsModel,
     ScriptedModel,
     ToolCallRequest,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "ModelRequest",
     "ModelResponse",
     "RecordNotFound",
+    "RecordedDecisionsModel",
     "ResourceNotFound",
     "ScriptedModel",
     "ToolCallRequest",

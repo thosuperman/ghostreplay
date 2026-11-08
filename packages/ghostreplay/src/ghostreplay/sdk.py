@@ -296,7 +296,9 @@ class _SdkScenario(Scenario):
         for spec in self.ghost._tools.values():
             tools.register(spec)
         snapshot = self.ghost._state or dict
-        return Environment(tools=tools, snapshot=lambda: snapshot(), clock=clock)
+        return Environment(
+            tools=tools, snapshot=lambda: snapshot(), clock=clock, close=self.ghost._teardown
+        )
 
     def build_model(self) -> ModelAdapter:
         return self.ghost.model_adapter or _SdkModel(self.ghost)
@@ -348,6 +350,7 @@ class GhostReplay:
         self._invariants: list[Invariant] = []
         self._state: Callable[[], dict[str, Any]] | None = None
         self._reset: Callable[[], Any] | None = None
+        self._teardown: Callable[[], Any] | None = None
         if storage is None or str(storage) == ":memory:":
             store = SqliteStore(":memory:")
         else:
@@ -554,6 +557,11 @@ class GhostReplay:
         each recording starts from the same world. (It also runs before replays, where no
         tool is called, so keep it side-effect free apart from resetting that state.)"""
         self._reset = fn
+        return fn
+
+    def teardown(self, fn: F) -> F:
+        """Register ``fn()`` called after every run (stop local services, close databases)."""
+        self._teardown = fn
         return fn
 
     # -- calls made from inside an agent ------------------------------------------------

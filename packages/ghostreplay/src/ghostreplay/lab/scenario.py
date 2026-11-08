@@ -29,6 +29,8 @@ class Environment:
     snapshot: Callable[[], dict[str, Any]]
     clock: Clock
     backends: dict[str, Any] = field(default_factory=dict)
+    #: Called once when the execution ends (stop local services, delete scratch databases).
+    close: Callable[[], None] | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,12 @@ class Scenario(ABC):
 
     @abstractmethod
     def build_environment(self, conditions: dict[str, str], clock: Clock) -> Environment: ...
+
+    def build_offline_environment(self, conditions: dict[str, str], clock: Clock) -> Environment:
+        """Environment for strict offline replay. Only the tool *specifications* are used
+        (handlers are replaced by stubs that raise), so scenarios backed by real services or
+        databases override this to avoid starting them at all."""
+        return self.build_environment(conditions, clock)
 
     @abstractmethod
     def build_model(self) -> ModelAdapter: ...

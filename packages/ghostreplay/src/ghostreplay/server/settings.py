@@ -56,6 +56,7 @@ class ServerSettings:
     cookie_secure: bool = False
     max_stream_delay_ms: int = 2000
     expose_docs: bool = True
+    load_library: bool = False  # load each lab's genuine capture library at startup
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> ServerSettings:
@@ -64,8 +65,9 @@ class ServerSettings:
         origins = tuple(
             o.strip() for o in env.get("GHOSTREPLAY_CORS_ORIGINS", "").split(",") if o.strip()
         )
+        library = env.get("GHOSTREPLAY_LOAD_LIBRARY", "1").strip() != "0"
         if not public:
-            return cls(allow_origins=origins or LOCAL_ORIGINS)
+            return cls(allow_origins=origins or LOCAL_ORIGINS, load_library=library)
         return cls(
             public=True,
             allow_origins=origins,
@@ -82,6 +84,7 @@ class ServerSettings:
             cookie_secure=not _flag(env, "GHOSTREPLAY_INSECURE_COOKIES"),
             max_stream_delay_ms=int(env.get("GHOSTREPLAY_MAX_STREAM_DELAY_MS", 400)),
             expose_docs=False,
+            load_library=library,
         )
 
 

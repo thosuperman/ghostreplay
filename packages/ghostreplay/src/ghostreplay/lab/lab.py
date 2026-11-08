@@ -7,15 +7,16 @@ import re
 import uuid
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, computed_field
 
 from ..core.clock import DEFAULT_EPOCH, DeterministicSources, VirtualClock
-from ..core.errors import GhostReplayError, ReplayDivergenceError
+from ..core.errors import ExecutionNotFound, GhostReplayError, ReplayDivergenceError
 from ..diff import TraceDiff, diff_executions
 from ..llm import LiveModelConfig
-from ..mocking.model import ModelAdapter
+from ..mocking.model import ModelAdapter, RecordedDecisionsModel
 from ..models import (
     EventKind,
     EventSource,
@@ -87,6 +88,8 @@ class Lab:
         self._redactor_factory = redactor_factory
         # Optional live-LLM mode. ``None`` means offline demo mode only (scripted models).
         self.live = live
+        #: Directory of genuine capture traces shipped with the lab (see ``storage.library``).
+        self.library_dir: Path | None = None
 
     def scenario(self, scenario_id: str) -> Scenario:
         if scenario_id not in self.scenarios:
@@ -186,6 +189,22 @@ class Lab:
             listeners=listeners,
         )
 
+    def reexecute(self, execution_id: str, *, title: str = "") -> Execution:
+        """Run a recording again for real: same agent code and conditions, tools executed
+        against a fresh environment, model calls served from the recording while the run
+        follows it (branch mode, no faults). For a genuine live capture this re-checks the
+        real side effects without calling the model again."""
+        ref = self.store.get(execution_id)
+        return self._execute(
+            self.scenario(ref.scenario),
+            ref.variant,
+            ExecutionMode.BRANCH,
+            reference=ref,
+            conditions=ref.conditions,
+            faults=[],
+            title=title or f"Re-execution of {ref.id} ({ref.variant} agent)",
+        )
+
     def diff(self, a_id: str, b_id: str) -> TraceDiff:
         return diff_executions(self.store.get(a_id), self.store.get(b_id))
 
@@ -197,7 +216,10 @@ class Lab:
         if case.reference is not None:
             if case.reference.scenario != case.scenario:
                 raise ValueError("case reference belongs to a different scenario")
-            self.store.save(case.reference)
+            try:  # the reference may already be stored (e.g. a shared capture); never overwrite
+                self.store.get(case.reference.id)
+            except ExecutionNotFound:
+                self.store.save(case.reference)
             mode: CounterfactualMode = "branch" if case.mode in ("branch", "record") else "auto"
             execution = self.counterfactual(
                 case.reference.id,
@@ -258,7 +280,13 @@ class Lab:
         """Turn an execution (usually a counterfactual) into a reproducible regression case."""
         ex = self.store.get(execution_id)
         scenario = self.scenario(ex.scenario)
-        if ex.reference_execution_id:
+        if ex.provenance.model_is_live:
+            # A genuine live capture: re-execute against it. Its model decisions are served as
+            # recorded (including any injected model decision, already in the recorded
+            # response), its tools run for real, and tool-level faults are applied again.
+            reference = ex
+            faults = [f for f in ex.faults if f.target.kind != "model_call"]
+        elif ex.reference_execution_id:
             reference = self.store.get(ex.reference_execution_id)
             faults = ex.faults
         else:  # a plain recording: re-run under the same conditions
@@ -436,6 +464,12 @@ class Lab:
             live_model = None
         if not wants_live:
             return scenario.build_model()
+        if self.live is None and reference is not None and mode == ExecutionMode.BRANCH:
+            # Re-executing a genuine live capture without credentials: model calls are served
+            # from the capture; the adapter only fails if the run leaves the captured path.
+            return RecordedDecisionsModel(
+                reference.provenance.model_provider, reference.provenance.model, reference.id
+            )
         if self.live is None:
             raise ValueError(
                 "this run needs a live LLM, but live AI mode is not enabled "
@@ -460,7 +494,47 @@ class Lab:
         scenario.variant(variant)  # validate
         start = datetime.fromisoformat(reference.started_at) if reference else DEFAULT_EPOCH
         clock = VirtualClock(start)
-        env = scenario.build_environment(conditions, clock)
+        offline = mode in OFFLINE_MODES
+        env = (
+            scenario.build_offline_environment(conditions, clock)
+            if offline
+            else scenario.build_environment(conditions, clock)
+        )
+        try:
+            return self._run(
+                scenario,
+                variant,
+                mode,
+                env,
+                clock,
+                reference=reference,
+                conditions=conditions,
+                faults=faults,
+                title=title,
+                listeners=listeners,
+                model_choice=model_choice,
+                task=task,
+            )
+        finally:
+            if env.close is not None:
+                env.close()
+
+    def _run(
+        self,
+        scenario: Scenario,
+        variant: str,
+        mode: ExecutionMode,
+        env: Any,
+        clock: VirtualClock,
+        *,
+        reference: Execution | None,
+        conditions: dict[str, str],
+        faults: list[FaultSpec],
+        title: str,
+        listeners: Iterable[EventListener],
+        model_choice: ModelChoice,
+        task: dict[str, Any] | None,
+    ) -> Execution:
         offline = mode in OFFLINE_MODES
         model = self._model_for(scenario, mode, reference, model_choice)
         agent = scenario.build_agent(variant)

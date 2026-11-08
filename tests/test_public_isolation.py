@@ -14,7 +14,7 @@ from ghostreplay.storage import OwnershipConflict, SqliteStore
 from support_agent.cli import build_lab as build_support_lab
 
 SCENARIO = "duplicate-refund"
-PUBLIC = ServerSettings.from_env({"GHOSTREPLAY_PUBLIC": "1"})
+PUBLIC = ServerSettings.from_env({"GHOSTREPLAY_PUBLIC": "1", "GHOSTREPLAY_LOAD_LIBRARY": "0"})
 
 
 @pytest.fixture
@@ -124,7 +124,11 @@ def test_api_docs_are_not_served_publicly(app):
 
 def test_each_session_keeps_a_bounded_number_of_executions(store):
     settings = ServerSettings.from_env(
-        {"GHOSTREPLAY_PUBLIC": "1", "GHOSTREPLAY_MAX_EXECUTIONS_PER_SESSION": "3"}
+        {
+            "GHOSTREPLAY_PUBLIC": "1",
+            "GHOSTREPLAY_MAX_EXECUTIONS_PER_SESSION": "3",
+            "GHOSTREPLAY_LOAD_LIBRARY": "0",
+        }
     )
     client = visitor(create_app(build_support_lab(store), settings=settings))
     for _ in range(5):

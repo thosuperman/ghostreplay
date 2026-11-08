@@ -36,6 +36,11 @@ _ADDED_COLUMNS = {"owner": "TEXT", "stored_at": "REAL"}
 _OWNER_INDEX = "CREATE INDEX IF NOT EXISTS idx_exec_owner ON executions(app, owner, created_at)"
 
 
+#: Owner of shared, read-only executions (genuine captures shipped with a lab). Every
+#: session can read them; none can overwrite them; expiry and pruning never delete them.
+LIBRARY_OWNER = "__library__"
+
+
 class OwnershipConflict(ValueError):
     """An execution id already belongs to a different owner and cannot be overwritten."""
 
@@ -132,16 +137,16 @@ class SqliteStore:
                 )
             if self.max_executions:
                 self._conn.execute(
-                    "DELETE FROM executions WHERE app = ? AND id NOT IN ("
+                    "DELETE FROM executions WHERE app = ? AND owner IS NOT ? AND id NOT IN ("
                     " SELECT id FROM executions WHERE app = ?"
                     " ORDER BY created_at DESC, rowid DESC LIMIT ?)",
-                    (execution.app, execution.app, self.max_executions),
+                    (execution.app, LIBRARY_OWNER, execution.app, self.max_executions),
                 )
             if self.owner_ttl_s and now - self._last_expiry > 60:
                 self._last_expiry = now
                 self._conn.execute(
-                    "DELETE FROM executions WHERE owner IS NOT NULL AND stored_at < ?",
-                    (now - self.owner_ttl_s,),
+                    "DELETE FROM executions WHERE owner IS NOT NULL AND owner != ? AND stored_at < ?",
+                    (LIBRARY_OWNER, now - self.owner_ttl_s),
                 )
 
     def expire(self, *, now: float | None = None) -> int:
@@ -152,15 +157,17 @@ class SqliteStore:
         with self._lock, self._conn:
             self._last_expiry = now
             return self._conn.execute(
-                "DELETE FROM executions WHERE owner IS NOT NULL AND stored_at < ?",
-                (now - self.owner_ttl_s,),
+                "DELETE FROM executions WHERE owner IS NOT NULL AND owner != ? AND stored_at < ?",
+                (LIBRARY_OWNER, now - self.owner_ttl_s),
             ).rowcount
 
-    def get(self, execution_id: str, *, owner: str | None = None) -> Execution:
+    def get(
+        self, execution_id: str, *, owner: str | None = None, include_library: bool = True
+    ) -> Execution:
         sql, params = "SELECT body_json FROM executions WHERE id = ?", [execution_id]
         if owner is not None:
-            sql += " AND owner = ?"
-            params.append(owner)
+            sql += " AND (owner = ? OR owner = ?)" if include_library else " AND owner = ?"
+            params.extend([owner, LIBRARY_OWNER] if include_library else [owner])
         with self._lock:
             row = self._conn.execute(sql, params).fetchone()
         if row is None:
@@ -174,6 +181,7 @@ class SqliteStore:
         scenario: str | None = None,
         limit: int = 200,
         owner: str | None = None,
+        include_library: bool = True,
     ) -> list[ExecutionSummary]:
         """Summaries, newest first. Unreadable rows are skipped (and logged), not fatal."""
         sql = "SELECT id, summary_json FROM executions WHERE 1=1"
@@ -182,8 +190,8 @@ class SqliteStore:
             sql += " AND app = ?"
             params.append(app)
         if owner is not None:
-            sql += " AND owner = ?"
-            params.append(owner)
+            sql += " AND (owner = ? OR owner = ?)" if include_library else " AND owner = ?"
+            params.extend([owner, LIBRARY_OWNER] if include_library else [owner])
         if scenario:
             sql += " AND scenario = ?"
             params.append(scenario)
@@ -200,6 +208,14 @@ class SqliteStore:
             except TraceFormatError as exc:
                 log.warning("skipping unreadable execution row: %s", exc)
         return out
+
+    def library_ids(self, *, app: str | None = None) -> list[str]:
+        sql, params = "SELECT id FROM executions WHERE owner = ?", [LIBRARY_OWNER]
+        if app:
+            sql += " AND app = ?"
+            params.append(app)
+        with self._lock:
+            return [r[0] for r in self._conn.execute(sql + " ORDER BY created_at", params)]
 
     def count(self, *, app: str | None = None, owner: str | None = None) -> int:
         sql, params = "SELECT COUNT(*) FROM executions WHERE 1=1", []
@@ -225,6 +241,9 @@ class SqliteStore:
         if owner is not None:
             sql += " AND owner = ?"
             params.append(owner)
+        else:  # "clear everything" never removes the shared capture library
+            sql += " AND (owner IS NULL OR owner != ?)"
+            params.append(LIBRARY_OWNER)
         with self._lock, self._conn:
             return self._conn.execute(sql, params).rowcount
 
@@ -260,6 +279,9 @@ class OwnedStore:
 
     def get(self, execution_id: str) -> Execution:
         return self.base.get(execution_id, owner=self.owner)
+
+    def library_ids(self, *, app: str | None = None) -> list[str]:
+        return self.base.library_ids(app=app)
 
     def list(
         self, *, app: str | None = None, scenario: str | None = None, limit: int = 200

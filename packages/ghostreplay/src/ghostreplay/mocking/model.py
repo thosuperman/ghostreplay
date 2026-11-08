@@ -97,3 +97,33 @@ class ScriptedModel:
             prompt_chars = sum(len(m.content) for m in request.messages)
             response.usage = {"input_chars": prompt_chars, "output_chars": len(response.content)}
         return response
+
+
+class RecordedDecisionsModel:
+    """Stands in for a live model when re-executing a genuine live capture without credentials.
+
+    In a branch re-execution, GhostReplay serves every model call from the capture for as long
+    as the run follows it; this adapter is only reached if the run leaves the captured path
+    (the agent asks the model something the capture does not contain). It then fails loudly
+    instead of inventing a decision.
+    """
+
+    is_live = False
+
+    def __init__(self, provider: str, model: str, capture_id: str) -> None:
+        self.provider = provider
+        self.model = model
+        self.capture_id = capture_id
+        self.label = (
+            f"Recorded decisions of {model} ({provider}) from genuine capture {capture_id}: "
+            "model calls are served from the capture, no live model call is made"
+        )
+
+    def complete(self, request: ModelRequest) -> ModelResponse:
+        from ..core.errors import GhostReplayError
+
+        raise GhostReplayError(
+            f"this re-execution left the path recorded in capture {self.capture_id}, so it needs "
+            "a new model decision; enable live AI mode (GHOSTREPLAY_LIVE=1 and a provider key) "
+            "to continue it with a live model"
+        )

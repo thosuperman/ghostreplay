@@ -130,7 +130,10 @@ def to_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         {
             "name": encode_tool_name(t["name"]),
             "description": t.get("description", ""),
-            "input_schema": t.get("input_schema") or {"type": "object", "properties": {}},
+            # ToolSpec.schema() publishes the JSON Schema as "parameters".
+            "input_schema": t.get("input_schema")
+            or t.get("parameters")
+            or {"type": "object", "properties": {}},
         }
         for t in tools
     ]

@@ -56,6 +56,11 @@ class ReplayRequest(BaseModel):
     execution_id: str
 
 
+class ReexecuteRequest(BaseModel):
+    execution_id: str
+    title: str = Field(default="", max_length=200)
+
+
 class DemoRequest(BaseModel):
     scenario: str
     preset: str | None = None
@@ -117,6 +122,12 @@ def create_app(
     if settings.isolate_sessions:
         lab.store.owner_ttl_s = settings.session_ttl_s
         lab.store.max_per_owner = settings.max_executions_per_session
+    library_ids: list[str] = []
+    if settings.load_library and getattr(lab, "library_dir", None) is not None:
+        from ..storage.library import load_library
+
+        base = lab.store.base if hasattr(lab.store, "base") else lab.store
+        library_ids = load_library(base, lab.library_dir)
     docs = settings.expose_docs
     app = FastAPI(
         title=title or f"GhostReplay Lab — {lab.app}",
@@ -352,6 +363,41 @@ def create_app(
             model=req.model,
         )
         return ex.summary().model_dump(mode="json")
+
+    @app.get("/api/library")
+    def library() -> dict[str, Any]:
+        """Genuine captures shipped with this lab (shared, read-only for every session)."""
+        from ..storage.library import library_manifest
+
+        items = []
+        for eid in library_ids:
+            try:
+                ex = lab.store.get(eid)
+            except ExecutionNotFound:
+                continue
+            items.append(
+                {
+                    **ex.summary().model_dump(mode="json"),
+                    "provider": ex.provenance.model_provider,
+                    "model": ex.provenance.model,
+                    "model_is_live": ex.provenance.model_is_live,
+                    "provenance": ex.provenance.label,
+                    "conditions": ex.conditions,
+                    "faults": [f.model_dump(mode="json") for f in ex.faults],
+                }
+            )
+        return {"manifest": library_manifest(getattr(lab, "library_dir", None)), "captures": items}
+
+    @app.post("/api/runs/reexecute")
+    def reexecute(req: ReexecuteRequest, request: Request) -> dict[str, Any]:
+        """Run a recording again for real (same code, live tools, recorded model decisions)."""
+        lab = lab_for(request)
+        ref = get_execution(lab, req.execution_id)
+        ex = guarded(lab.reexecute, req.execution_id, title=req.title)
+        return {
+            "execution": ex.summary().model_dump(mode="json"),
+            "diff": diff_executions(ref, ex).model_dump(mode="json"),
+        }
 
     @app.post("/api/runs/replay")
     def replay(req: ReplayRequest, request: Request) -> dict[str, Any]:
