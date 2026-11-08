@@ -22,3 +22,6 @@ docs/sdk/examples/ghostreplay-data/
 docs/sdk/examples/tests/
 examples/invoice-agent/.ghostreplay-invoice/
 dist/
+
+# Local editor/assistant settings
+.claude/
