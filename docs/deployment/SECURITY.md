@@ -64,6 +64,25 @@ To check the sandbox score on the server, run `systemd-analyze security ghostrep
 
 Each engine run takes milliseconds, so a separate wall-clock timeout isn't needed. The step limits, the stream pace cap and the run semaphore together bound how long any request can hold resources.
 
+## Trace import and download
+
+- `POST /lab/<lab>/api/traces/import` accepts an uploaded trace only as data. The upload is:
+  - validated against the trace schema (unknown fields, a wrong schema version, out-of-order
+    events and duplicate ids are rejected with 422);
+  - redacted again before storage;
+  - capped at 512 KiB (413) and 5,000 events;
+  - stored only in the uploader's session;
+  - expired with the rest of their data after 24 hours;
+  - rate-limited like every other write.
+- A trace id that already belongs to another session is refused with 409 and is never
+  overwritten.
+- Nothing in a trace is executed. A trace can name a scenario, but the server only replays
+  the two bundled scenarios, using its own code.
+- `GET …/executions/<id>/trace` downloads a run only from the requester's own session.
+
+All of this is covered by `tests/test_public_isolation.py` and the `trace import` Playwright
+test.
+
 ## Visitor isolation
 
 - On the first request, each browser gets an anonymous random session cookie (`gr_session`): 256 bits, `HttpOnly`, `Secure`, `SameSite=Lax`, lasting 24 h.

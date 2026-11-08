@@ -105,6 +105,27 @@ These checks were run against the live system on 2026-11-07.
 | Release rollback | `rollback.sh` to the previous release and back. Visible in the CSP header difference between the two releases. |
 | Automatic rollback | Activated a deliberately broken release. The health check failed, the previous release was restored automatically, and both labs were healthy again. The first attempt exposed a systemd start-limit bug, which was fixed before the rerun. |
 
+### Product and SDK upgrade, 2026-11-08
+
+Releases `20261108T013658Z-6bc39c84cd` and `20261108T014015Z-f28c1a70a0` added:
+
+- the new homepage and the guided demos (`/demo/refund`, `/demo/devops`);
+- the Guided / Developer mode switch;
+- `/connect` and `/import`, plus trace download and import.
+
+They were deployed with `deploy.sh` to the same instance. Nothing in the infrastructure
+changed.
+
+| Check | Result |
+|---|---|
+| Local, before deploying | 164 pytest tests (including every runnable SDK doc block), 8 invoice-example tests, 14 Playwright tests passed (1 public-only skipped), lint and secret scan clean |
+| SDK portability | The built wheel installed into a fresh Python 3.12 venv with only `pydantic`; the external invoice example's demo, tests and `ghostreplay test --import` passed there |
+| **Playwright against the public site** | **15 passed**: homepage, both guided demos end to end, Connect, trace import (valid and malformed), developer views, session isolation |
+| Found and fixed during verification | A first-load cookie race (parallel first requests could be issued two sessions), fixed in the second release |
+| Pretty paths | `/demo/refund`, `/demo/devops`, `/connect`, `/import` serve the app (200) |
+| Logs | No warnings or errors from either lab in the 15 minutes after deploying |
+| Resources after the test traffic | Labs at 45 and 48 MiB, 1.34 GB of memory available, CPU idle, disk 8% |
+
 ### Resource use (2 GB instance)
 
 | Measurement | Value |
