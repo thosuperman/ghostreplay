@@ -87,7 +87,11 @@ test("a different browser session cannot see another session's runs", async ({ p
   try {
     const res = await other.request.get(`/lab/${LAB}/api/executions/${incident}`);
     expect(res.status()).toBe(404);
-    expect(await (await other.request.get(`/lab/${LAB}/api/executions`)).json()).toEqual([]);
+    // Every session also sees the shared, read-only capture library, but nothing of another session.
+    const library = (await (await other.request.get(`/lab/${LAB}/api/library`)).json()) as { captures: { id: string }[] };
+    const shared = new Set(library.captures.map((c) => c.id));
+    const visible = (await (await other.request.get(`/lab/${LAB}/api/executions`)).json()) as { id: string }[];
+    expect(visible.filter((r) => !shared.has(r.id))).toEqual([]);
   } finally {
     await other.close();
   }
