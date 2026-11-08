@@ -101,7 +101,9 @@ def mix() -> None:
         delay = int(marks[s["id"]] * 1000)
         parts.append(f"[{i}:a]adelay={delay}|{delay}[a{i}]")
     n = len(d["segments"])
-    graph = ";".join(parts) + ";" + "".join(f"[a{i}]" for i in range(1, n + 1))
+    # The screen is recorded at the browser viewport size (16:9); scale it to full 1080p.
+    graph = "[0:v]scale=1920:1080:flags=lanczos,setsar=1[vout];"
+    graph += ";".join(parts) + ";" + "".join(f"[a{i}]" for i in range(1, n + 1))
     graph += (
         f"amix=inputs={n}:normalize=0,apad,atrim=0:{length:.3f},loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
     )
@@ -115,7 +117,7 @@ def mix() -> None:
         "-filter_complex",
         graph,
         "-map",
-        "0:v",
+        "[vout]",
         "-map",
         "[aout]",
         "-c:v",

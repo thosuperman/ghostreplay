@@ -19,12 +19,16 @@ const GAP = 0.9; // breathing room after each spoken segment (s)
 const rawDir = resolve(out, "raw", String(Date.now()));
 mkdirSync(rawDir, { recursive: true });
 
+// Playwright only ever scales the page *down* into the video frame, never up: a video size larger
+// than the viewport leaves the page in the top-left corner with a grey border. So the video is
+// recorded at exactly the viewport size and make_video.py scales it to 1920x1080.
+const VIEWPORT = { width: 1440, height: 810 };
 const browser = await chromium.launch();
 const context = await browser.newContext({
-  viewport: { width: 1440, height: 810 },
+  viewport: VIEWPORT,
   deviceScaleFactor: 1.5,
   colorScheme: "dark",
-  recordVideo: { dir: rawDir, size: { width: 1920, height: 1080 } },
+  recordVideo: { dir: rawDir, size: VIEWPORT },
 });
 // A visible cursor (headless video has none) with a click highlight.
 await context.addInitScript(() => {
