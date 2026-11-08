@@ -1,20 +1,20 @@
 import { expect, test } from "./fixtures";
 
-test("home page offers both one-click demos", async ({ page }) => {
+test("home page explains the product and offers both demos", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Break AI agents safely");
-  await expect(page.getByRole("link", { name: /Try the Duplicate Refund Demo/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Try the Unsafe Infrastructure Demo/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Your AI Agent Made a Mistake. Now What?");
+  await expect(page.getByTestId("cta-watch-fail")).toHaveAttribute("href", "#/demo/refund");
+  await expect(page.getByTestId("cta-connect")).toHaveAttribute("href", "#/connect");
+  await expect(page.getByText("The $129 Refund That Became $258")).toBeVisible();
+  await expect(page.getByText("The AI Agent That Tried to Delete Healthy Servers")).toBeVisible();
+  await expect(page.getByText("Catch the bug. Replay the failure. Prove the fix.")).toBeVisible();
+  // The SDK snippet on the home page is the tested example file.
+  await expect(page.locator("pre").first()).toContainText('GhostReplay("my-agent"');
 });
 
-for (const demo of [
-  { cta: /Try the Duplicate Refund Demo/, lab: "support" },
-  { cta: /Try the Unsafe Infrastructure Demo/, lab: "devops" },
-]) {
-  test(`${demo.lab}: one click runs the full story on real executions`, async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("link", { name: demo.cta }).click();
-    await expect(page).toHaveURL(new RegExp(`#/${demo.lab}/story`));
+for (const demo of [{ lab: "support" }, { lab: "devops" }]) {
+  test(`${demo.lab}: the developer demo story runs on real executions`, async ({ page }) => {
+    await page.goto(`/#/${demo.lab}/story`);
     await expect(page.getByText("bug reproduced")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("✓ bug reproduced")).toBeVisible();
     await expect(page.getByText("✓ fix proven")).toBeVisible();

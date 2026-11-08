@@ -21,11 +21,14 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .. import __version__
-from ..core.errors import ExecutionNotFound, GhostReplayError
+from ..core.errors import ExecutionNotFound, GhostReplayError, TraceFormatError
 from ..diff import diff_executions
-from ..models import Event, FaultSpec
+from ..models import Event, Execution, FaultSpec
 from ..mutation import CATALOG
+from ..recorder import Redactor
 from ..regression.cases import RegressionCase
+from ..storage import OwnershipConflict
+from ..storage.parsing import parse_document
 from .settings import RateLimiter, ServerSettings
 
 if TYPE_CHECKING:
@@ -71,6 +74,25 @@ class RunCasesRequest(BaseModel):
 
 
 RUN_PATH_SUFFIXES = ("/replay/stream",)
+MAX_IMPORT_EVENTS = 5000
+
+
+def redact_execution(ex: Execution) -> Execution:
+    """Re-apply secret redaction to every payload of an imported trace.
+
+    Traces produced by GhostReplay are already redacted; an uploaded file is untrusted, so the
+    server redacts again before storing anything.
+    """
+    r = Redactor()
+    data = ex.model_dump(mode="json")
+    for key in ("task", "final_state", "output", "conditions"):
+        data[key] = r.redact(data.get(key))
+    for ev in data["events"]:
+        for key in ("request", "response", "state_before", "state_after", "metadata", "error"):
+            ev[key] = r.redact(ev.get(key))
+    return Execution.model_validate(data)
+
+
 SESSION_COOKIE = "gr_session"
 _SESSION_RE = re.compile(r"^[A-Za-z0-9_-]{32,64}$")
 
@@ -248,18 +270,69 @@ def create_app(
 
     @app.get("/api/executions")
     def executions(
-        request: Request, scenario: str | None = None, limit: int = Query(100, ge=1, le=500)
+        request: Request,
+        scenario: str | None = None,
+        limit: int = Query(100, ge=1, le=500),
+        imported: bool = False,
     ):
+        """This lab's executions, or with ``imported=true`` the traces imported from other apps."""
         lab = lab_for(request)
-        return [
-            s.model_dump(mode="json")
-            for s in lab.store.list(app=lab.app, scenario=scenario, limit=limit)
-        ]
+        if imported:
+            rows = [s for s in lab.store.list(limit=limit) if s.app != lab.app]
+        else:
+            rows = lab.store.list(app=lab.app, scenario=scenario, limit=limit)
+        return [s.model_dump(mode="json") for s in rows]
 
     @app.get("/api/executions/{execution_id}")
     def execution(execution_id: str, request: Request) -> dict[str, Any]:
         ex = get_execution(lab_for(request), execution_id)
         return {**ex.model_dump(mode="json"), "summary": ex.summary().model_dump(mode="json")}
+
+    @app.get("/api/executions/{execution_id}/trace")
+    def download_trace(execution_id: str, request: Request) -> JSONResponse:
+        """The execution as a portable, versioned trace file (already redacted)."""
+        ex = get_execution(lab_for(request), execution_id)
+        return JSONResponse(
+            ex.model_dump(mode="json"),
+            headers={"Content-Disposition": f'attachment; filename="{ex.id}.trace.json"'},
+        )
+
+    @app.post("/api/traces/import")
+    async def import_trace(request: Request) -> dict[str, Any]:
+        """Store an uploaded trace for inspection (data only: nothing in it is executed).
+
+        The body is validated against the trace schema, re-redacted, capped in size and
+        event count, and stored in the caller's own session like any other execution. A trace
+        is replayable on this server only if it belongs to a scenario this lab runs.
+        """
+        raw = await request.body()
+        if len(raw) > settings.max_body_bytes:
+            raise HTTPException(413, f"trace exceeds {settings.max_body_bytes} bytes")
+        try:
+            ex = parse_document(Execution, raw, source="uploaded trace")
+        except TraceFormatError as exc:
+            raise HTTPException(422, str(exc)) from None
+        if len(ex.events) > MAX_IMPORT_EVENTS:
+            raise HTTPException(422, f"trace has more than {MAX_IMPORT_EVENTS} events")
+        ex = redact_execution(ex)
+        lab = lab_for(request)
+        try:
+            lab.store.save(ex)
+        except OwnershipConflict:
+            raise HTTPException(
+                409, "a trace with this id already exists in another session"
+            ) from None
+        replayable = ex.scenario in lab.scenarios and ex.app == lab.app
+        return {
+            "execution": ex.summary().model_dump(mode="json"),
+            "replayable_here": replayable,
+            "note": (
+                "This trace belongs to a scenario this lab runs, so it can be replayed here."
+                if replayable
+                else "Stored for inspection only. Replaying it needs the agent code that "
+                "produced it: run `ghostreplay replay TRACE --app your_module:ghost` locally."
+            ),
+        }
 
     @app.delete("/api/executions")
     def clear(request: Request) -> dict[str, int]:

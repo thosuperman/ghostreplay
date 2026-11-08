@@ -1,0 +1,22 @@
+# .github/workflows/agent-regressions.yml in YOUR agent's repository.
+# Runs the GhostReplay regression cases fully offline: no payment API, no cloud account,
+# no LLM key. CI fails when a safety invariant is violated (an unexpected outcome).
+name: agent-regressions
+on: [push, pull_request]
+
+jobs:
+  ghostreplay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install your agent and the GhostReplay SDK
+        run: |
+          pip install "ghostreplay @ git+https://github.com/thosuperman/ghost-replay@main#subdirectory=packages/ghostreplay"
+          pip install -e ".[test]"
+      - name: Replay recorded incidents as regression tests
+        run: ghostreplay test tests/regression --import invoice_agent.agent --junit reports/ghostreplay.xml
+      - name: Unit tests (include the generated test_*.py files)
+        run: pytest

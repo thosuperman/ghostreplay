@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 
 import pytest
@@ -193,3 +194,68 @@ def test_existing_database_is_migrated_in_place(tmp_path):
     assert store.get(ex.id) == ex
     assert [s.id for s in store.list()] == [ex.id]
     assert store.scoped("anyone").list() == []
+
+
+# -- trace import / export -------------------------------------------------------------------
+
+
+def _foreign_trace() -> dict:
+    from ghostreplay import GhostReplay
+
+    ghost = GhostReplay("byoa-upload-test")
+
+    @ghost.tool("orders.get")
+    def get(order_id: str) -> dict:
+        return {"order_id": order_id, "total": 5}
+
+    @ghost.agent()
+    def agent(task: dict) -> str:
+        return str(get(task["order_id"]))
+
+    run = ghost.record({"order_id": "A1"})
+    return json.loads(run.execution.model_dump_json())
+
+
+def test_import_stores_a_validated_redacted_trace_in_the_uploaders_session(app, store):
+    alice, bob = visitor(app), visitor(app)
+    doc = _foreign_trace()
+    doc["task"]["api_key"] = "sk-live-0123456789abcdefghijklmnop"  # secret-scan: allow
+    doc["events"][2]["response"]["authorization"] = "Bearer abc.def.ghi"
+    r = alice.post("/api/traces/import", content=json.dumps(doc))
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["replayable_here"] is False and "ghostreplay replay" in body["note"]
+    tid = body["execution"]["id"]
+
+    stored = alice.get(f"/api/executions/{tid}").json()
+    assert "sk-live" not in json.dumps(stored) and "abc.def.ghi" not in json.dumps(stored)
+    assert [e["id"] for e in alice.get("/api/executions?imported=true").json()] == [tid]
+    assert alice.get("/api/executions").json() == []  # not mixed into this lab's own runs
+
+    assert bob.get(f"/api/executions/{tid}").status_code == 404
+    assert bob.get("/api/executions?imported=true").json() == []
+    assert bob.post("/api/traces/import", content=json.dumps(doc)).status_code == 409
+    assert alice.post("/api/runs/replay", json={"execution_id": tid}).status_code == 400
+
+
+def test_import_rejects_malformed_and_oversized_traces(app):
+    client = visitor(app)
+    assert client.post("/api/traces/import", content=b"{not json").status_code == 422
+    assert client.post("/api/traces/import", content=b'{"id": "x"}').status_code == 422
+    doc = _foreign_trace()
+    doc["events"][0]["kind"] = "shell_command"
+    assert client.post("/api/traces/import", content=json.dumps(doc)).status_code == 422
+    big = b"{" + b" " * 600_000 + b"}"
+    assert client.post("/api/traces/import", content=big).status_code == 413
+
+
+def test_trace_download_round_trips_through_import(app):
+    alice = visitor(app)
+    rec = alice.post("/api/runs/record", json={"scenario": SCENARIO, "variant": "vulnerable"})
+    rid = rec.json()["id"]
+    dl = alice.get(f"/api/executions/{rid}/trace")
+    assert dl.status_code == 200
+    assert f'filename="{rid}.trace.json"' in dl.headers["content-disposition"]
+    again = alice.post("/api/traces/import", content=dl.content)
+    assert again.status_code == 200 and again.json()["replayable_here"] is True
+    assert visitor(app).get(f"/api/executions/{rid}/trace").status_code == 404

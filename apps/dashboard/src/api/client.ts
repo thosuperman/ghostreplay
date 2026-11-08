@@ -3,6 +3,7 @@ import type {
   Execution,
   ExecutionSummary,
   ExportedCase,
+  ImportResult,
   FaultKind,
   FaultSpec,
   LabInfo,
@@ -109,6 +110,10 @@ export const api = {
     post<RegressionReport[]>(lab, "/api/regression/run", { execution_id: executionId }),
   exportCase: (lab: LabId, executionId: string, variant: string) =>
     post<ExportedCase>(lab, "/api/regression/export", { execution_id: executionId, variant }),
+  imported: (lab: LabId) => request<ExecutionSummary[]>(lab, "/api/executions?imported=true&limit=100"),
+  importTrace: (lab: LabId, body: string) =>
+    request<ImportResult>(lab, "/api/traces/import", { method: "POST", headers: { "Content-Type": "application/json" }, body }),
+  traceUrl: (lab: LabId, executionId: string) => `${LABS[lab].base}/api/executions/${encodeURIComponent(executionId)}/trace`,
   replayStreamUrl: (lab: LabId, executionId: string, delayMs: number) =>
     `${LABS[lab].base}/api/executions/${encodeURIComponent(executionId)}/replay/stream?delay_ms=${delayMs}`,
 };

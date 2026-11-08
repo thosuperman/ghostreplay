@@ -358,3 +358,9 @@ export interface LiveModelInfo {
 }
 
 export type ModelChoice = "scripted" | "live";
+
+export interface ImportResult {
+  execution: ExecutionSummary;
+  replayable_here: boolean;
+  note: string;
+}

@@ -17,3 +17,8 @@ apps/dashboard/*.tsbuildinfo
 apps/dashboard/test-results/
 apps/dashboard/playwright-report/
 /backups/
+# SDK example output
+docs/sdk/examples/ghostreplay-data/
+docs/sdk/examples/tests/
+examples/invoice-agent/.ghostreplay-invoice/
+dist/

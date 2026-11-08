@@ -1,113 +1,153 @@
-import { LABS, type LabId } from "../api/client";
+import hello from "../../../../docs/sdk/examples/hello.py?raw";
 import { Badge, GhostLogo } from "../components/ui";
+import { CodeBlock } from "../components/CodeBlock";
 import { href } from "../lib/router";
 
-const STEPS = [
-  { n: "01", title: "Record", text: "Every model call, tool call, clock read and id is captured in order — redacted before it is stored.", tone: "text-sky-300" },
-  { n: "02", title: "Replay", text: "Re-run the agent offline. Responses come from the recording; tools and network are physically blocked.", tone: "text-cyan-300" },
-  { n: "03", title: "Break", text: "Inject a timeout-after-commit, a 429, stale data, a permission error… at any recorded step.", tone: "text-fuchsia-300" },
-  { n: "04", title: "Detect", text: "Safety invariants flag the dangerous behaviour: double refunds, unverified destructive actions.", tone: "text-rose-300" },
-  { n: "05", title: "Prove", text: "Fix the harness, re-run the same failure, and export a pytest regression that PASSES.", tone: "text-emerald-300" },
+const FLOW = [
+  { n: "1", title: "Record", text: "Capture every decision your agent makes and every tool it calls, in order, like a flight recorder.", tone: "text-sky-300" },
+  { n: "2", title: "Replay", text: "Run the same incident again offline. Recorded answers are reused, so no payment or server is touched twice.", tone: "text-cyan-300" },
+  { n: "3", title: "Investigate", text: "See exactly which step went wrong, in plain English, with the full technical detail one click away.", tone: "text-fuchsia-300" },
+  { n: "4", title: "Fix", text: "Change the agent and run it against the same failure, a timeout, stale data, an outage, on purpose.", tone: "text-amber-300" },
+  { n: "5", title: "Verify", text: "Turn the incident into a regression test that fails for the bug and passes for the fix, in CI, forever.", tone: "text-emerald-300" },
 ];
 
-function DemoCard({ lab, primary }: { lab: LabId; primary?: boolean }) {
-  const def = LABS[lab];
-  return (
-    <a
-      href={href({ name: "story", lab })}
-      className={
-        "group relative block overflow-hidden rounded-2xl border p-6 transition-all duration-200 hover:-translate-y-0.5 " +
-        (primary
-          ? "border-violet-400/40 bg-gradient-to-br from-violet-500/[0.16] via-ink-900 to-ink-900 shadow-[0_20px_60px_-25px_rgb(139_92_246/0.7)] hover:border-violet-300/60"
-          : "border-white/10 bg-ink-900/80 hover:border-cyan-300/40")
-      }
-    >
-      <div className="flex items-center gap-2">
-        <Badge tone={primary ? "violet" : "cyan"}>{def.name}</Badge>
-        <Badge>one click · no setup · no API keys</Badge>
-      </div>
-      <div className="mt-4 text-xl font-semibold text-white">{def.demoLabel} →</div>
-      <p className="mt-2 text-sm leading-relaxed text-ink-300">{def.tagline}</p>
-      <div className="mt-5 flex items-center gap-2 font-mono text-[11px] text-ink-400">
-        <span className="text-rose-300">incident FAIL</span>
-        <span>→</span>
-        <span className="text-cyan-300">replay identical</span>
-        <span>→</span>
-        <span className="text-fuchsia-300">inject fault</span>
-        <span>→</span>
-        <span className="text-emerald-300">fix PASS</span>
-      </div>
-      <span className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-violet-500/10 blur-3xl transition-opacity group-hover:opacity-100" />
-    </a>
-  );
-}
+const SCENARIOS = [
+  {
+    demo: "refund" as const,
+    tag: "Support Agent",
+    title: "The $129 Refund That Became $258",
+    text: "A customer requested a $129 refund. An API timeout caused the agent to retry, accidentally refunding twice. See how GhostReplay detects and prevents the mistake.",
+    cta: "Try Refund Demo",
+    accent: "from-rose-500/[0.16] border-rose-400/30 hover:border-rose-300/60",
+    before: "$258 refunded",
+    after: "$129 refunded",
+  },
+  {
+    demo: "devops" as const,
+    tag: "DevOps Agent",
+    title: "The AI Agent That Tried to Delete Healthy Servers",
+    text: "An AI DevOps agent trusted stale monitoring data and attempted to terminate healthy instances. See how GhostReplay reveals and tests the unsafe behavior.",
+    cta: "Try DevOps Demo",
+    accent: "from-amber-500/[0.14] border-amber-400/30 hover:border-amber-300/60",
+    before: "3 healthy servers terminated",
+    after: "0 terminated · human approval requested",
+  },
+];
 
 export function Home() {
   return (
     <div className="animate-fade">
-      <section className="grid-bg relative -mx-5 -mt-8 overflow-hidden border-b hairline px-5 pb-14 pt-16">
-        <div className="mx-auto max-w-[1500px]">
-          <div className="flex items-center gap-3">
+      <section className="grid-bg relative -mx-5 -mt-8 overflow-hidden border-b hairline px-5 pb-16 pt-14 sm:pt-20">
+        <div className="mx-auto max-w-[1100px]">
+          <div className="flex flex-wrap items-center gap-3">
             <GhostLogo className="size-10" />
-            <Badge tone="violet">open source · Python framework + dashboard</Badge>
+            <Badge tone="violet">A flight recorder and crash-test lab for AI agents</Badge>
           </div>
-          <h1 className="mt-6 max-w-4xl text-5xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-            <span className="text-gradient">Break AI agents safely.</span>
-            <br />
-            <span className="text-white">Replay failures. Prove the fix.</span>
+          <h1 className="mt-6 max-w-4xl text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl">
+            Your AI Agent Made a Mistake. <span className="text-gradient">Now What?</span>
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-300">
-            GhostReplay records what your agent actually did, replays it deterministically offline, injects the failures that
-            happen in production, and turns the dangerous ones into regression tests.
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-200 sm:text-xl">
+            Record every decision, replay the failure safely, and prove your fix before it happens again.
           </p>
-          <div className="mt-10 grid max-w-5xl gap-4 md:grid-cols-2">
-            <DemoCard lab="support" primary />
-            <DemoCard lab="devops" />
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a
+              href={href({ name: "demo", demo: "refund" })}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-violet-500 to-violet-600 px-6 py-3 text-base font-semibold text-white shadow-[0_0_0_1px_rgb(167_139_250/0.5),0_14px_40px_-12px_rgb(139_92_246/0.9)] hover:from-violet-400 hover:to-violet-500"
+              data-testid="cta-watch-fail"
+            >
+              Watch an AI Agent Fail →
+            </a>
+            <a
+              href={href({ name: "connect" })}
+              className="inline-flex items-center gap-2 rounded-xl bg-white/[0.05] px-6 py-3 text-base font-semibold text-white ring-1 ring-inset ring-white/15 hover:bg-white/[0.09]"
+              data-testid="cta-connect"
+            >
+              Connect Your Own Agent
+            </a>
           </div>
+          <p className="mt-6 font-mono text-sm text-ink-400">Catch the bug. Replay the failure. Prove the fix.</p>
         </div>
       </section>
 
-      <section className="py-14">
-        <div className="mb-8 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">How it works</div>
-        <div className="grid gap-px overflow-hidden rounded-2xl border hairline bg-white/[0.06] md:grid-cols-5">
-          {STEPS.map((s) => (
-            <div key={s.n} className="bg-ink-900 p-5">
-              <div className={`font-mono text-xs ${s.tone}`}>{s.n}</div>
-              <div className="mt-2 text-base font-semibold text-white">{s.title}</div>
-              <p className="mt-2 text-[13px] leading-relaxed text-ink-300">{s.text}</p>
-            </div>
+      <section className="mx-auto mt-14 max-w-[1100px]">
+        <h2 className="text-2xl font-semibold tracking-tight text-white">See a real agent fail, then watch the fix hold</h2>
+        <p className="mt-2 max-w-2xl text-ink-300">Two real AI agents, two expensive mistakes. Every number you'll see comes from executions run live on this server against simulated services. No sign-up and no API keys.</p>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {SCENARIOS.map((s) => (
+            <a key={s.demo} href={href({ name: "demo", demo: s.demo })} className={`group block rounded-2xl border bg-gradient-to-br via-ink-900 to-ink-900 p-6 transition-all hover:-translate-y-0.5 ${s.accent}`} data-testid={`scenario-${s.demo}`}>
+              <Badge>{s.tag}</Badge>
+              <h3 className="mt-4 text-xl font-semibold text-white">{s.title}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-ink-300">{s.text}</p>
+              <div className="mt-5 grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-rose-200 ring-1 ring-rose-400/20">
+                  <div className="text-[10.5px] uppercase tracking-wider opacity-70">Buggy agent</div>
+                  {s.before}
+                </div>
+                <div className="rounded-lg bg-emerald-500/10 px-3 py-2 text-emerald-200 ring-1 ring-emerald-400/20">
+                  <div className="text-[10.5px] uppercase tracking-wider opacity-70">Fixed agent</div>
+                  {s.after}
+                </div>
+              </div>
+              <div className="mt-5 text-[15px] font-semibold text-violet-200 group-hover:text-white">{s.cta} →</div>
+            </a>
           ))}
         </div>
+        <p className="mt-3 text-xs text-ink-400">The outcomes on these cards are what the demos reproduce; each run shows its own measured results.</p>
       </section>
 
-      <section className="grid gap-6 pb-10 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-2xl border hairline bg-ink-900/80 p-6">
-          <div className="text-sm font-semibold text-white">One door between the agent and the world</div>
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-300">
-            Agents call <code className="font-mono text-violet-300">rt.complete()</code>,{" "}
-            <code className="font-mono text-violet-300">rt.call_tool()</code>, <code className="font-mono text-violet-300">rt.now()</code> and{" "}
-            <code className="font-mono text-violet-300">rt.new_id()</code>. A single session decides — per call — whether to execute it,
-            serve it from the recording, or inject a fault, and labels every event with where its response came from.
-          </p>
-          <pre className="mt-4 overflow-x-auto rounded-lg border hairline bg-ink-950 p-4 font-mono text-[12px] leading-relaxed text-ink-200">
-{`agent ─▶ AgentRuntime ─▶ Session.interact(op)
-                          ├─ record   → execute          `}<span className="text-sky-300">live</span>{`
-                          ├─ replay   → recording        `}<span className="text-cyan-300">recorded</span>{`
-                          ├─ fault    → substitute       `}<span className="text-fuchsia-300">injected</span>{`
-                          └─ branch   → re-execute sim   `}<span className="text-violet-300">simulated</span>{`
-                    divergence? ─▶ stop & report (never guess)`}
-          </pre>
-        </div>
-        <div className="rounded-2xl border hairline bg-ink-900/80 p-6">
-          <div className="text-sm font-semibold text-white">Honest by construction</div>
-          <ul className="mt-3 space-y-2.5 text-[13px] leading-relaxed text-ink-300">
-            <li><span className="text-cyan-300">●</span> Offline replay never invokes a tool or model; sockets are blocked on the replay thread.</li>
-            <li><span className="text-amber-300">●</span> Divergence is reported at the exact step — recorded responses are never consumed out of order.</li>
-            <li><span className="text-fuchsia-300">●</span> Faults that need a real side effect run in labelled branch mode, never as a made-up continuation.</li>
-            <li><span className="text-emerald-300">●</span> Demo decisions come from scripted models and are labelled as such everywhere.</li>
-          </ul>
+      <section className="mx-auto mt-16 max-w-[1100px]">
+        <h2 className="text-2xl font-semibold tracking-tight text-white">How it works</h2>
+        <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {FLOW.map((s, i) => (
+            <li key={s.n} className="relative rounded-xl border hairline bg-ink-900/70 p-4">
+              <div className={`font-mono text-xs ${s.tone}`}>{s.n}</div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {s.title}
+                {i < FLOW.length - 1 && <span className="ml-2 hidden text-ink-500 lg:inline">→</span>}
+              </div>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-300">{s.text}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border hairline bg-ink-900/70 p-5">
+            <div className="text-sm font-semibold text-white">Why not just read the logs?</div>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-ink-300">
+              Logs tell you what happened once. GhostReplay lets you run it again: the same decisions, the same tool answers, on demand, without repeating the side effects. Then it injects the failure on purpose and tells you whether your fix really holds.
+            </p>
+          </div>
+          <div className="rounded-xl border hairline bg-ink-900/70 p-5">
+            <div className="text-sm font-semibold text-white">Who it's for</div>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-ink-300">
+              Developers building agents that take actions: AI agent and LLM application engineers, backend and DevOps automation teams, and QA engineers who need agent failures to be reproducible and testable.
+            </p>
+          </div>
         </div>
       </section>
+
+      <section className="mx-auto mt-16 max-w-[1100px]">
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight text-white">Works with your AI agent</h2>
+            <p className="mt-3 text-ink-300">
+              Install the Python SDK and decorate the calls your agent makes to the outside world: tools, and model calls. GhostReplay records exactly those calls, replays them offline, injects failures into them and turns incidents into pytest regressions.
+            </p>
+            <p className="mt-3 text-sm text-ink-400">
+              It records only what you route through it. There is no automatic instrumentation of arbitrary code.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <a href={href({ name: "connect" })} className="rounded-lg bg-violet-500/90 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-400">Developer quickstart →</a>
+              <a href={href({ name: "executions", lab: "support" })} className="rounded-lg px-4 py-2 text-sm font-medium text-ink-200 ring-1 ring-white/15 hover:bg-white/[0.05]">Open developer mode</a>
+            </div>
+          </div>
+          <CodeBlock code={hello} filename="hello.py · runs as shown" />
+        </div>
+      </section>
+
+      <footer className="mx-auto mt-16 max-w-[1100px] border-t hairline pt-6 text-xs leading-relaxed text-ink-400">
+        Demo agents use scripted decision policies (labelled everywhere) so every run is reproducible and free; tools are in-memory simulations: no real payment, refund or cloud operation ever happens. Open source under the MIT license ·{" "}
+        <a className="text-cyan-300 hover:underline" href="https://github.com/thosuperman/ghost-replay">GitHub</a>
+      </footer>
     </div>
   );
 }

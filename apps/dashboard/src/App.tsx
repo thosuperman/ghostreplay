@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { api, LABS, type LabId } from "./api/client";
 import type { LiveModelInfo } from "./api/types";
 import { Badge, cx, Dot, GhostLogo } from "./components/ui";
-import { href, type Route, useRoute } from "./lib/router";
+import { href, isGuided, type Route, useRoute } from "./lib/router";
+import { Connect } from "./views/Connect";
+import { GuidedDemo } from "./views/GuidedDemo";
+import { ImportTrace } from "./views/ImportTrace";
 import { DiffView } from "./views/DiffView";
 import { ExecutionView } from "./views/ExecutionView";
 import { Explorer } from "./views/Explorer";
@@ -45,7 +48,7 @@ function useLabHealth(): { health: Health; live: Partial<Record<LabId, LiveModel
 }
 
 const NAV: { name: Route["name"]; label: string }[] = [
-  { name: "story", label: "Guided demo" },
+  { name: "story", label: "Demo story" },
   { name: "executions", label: "Executions" },
   { name: "replay", label: "Replay Studio" },
   { name: "failure-lab", label: "Failure Lab" },
@@ -54,7 +57,28 @@ const NAV: { name: Route["name"]; label: string }[] = [
 ];
 
 function labOf(route: Route): LabId | undefined {
-  return route.name === "home" ? undefined : route.lab;
+  return "lab" in route ? route.lab : undefined;
+}
+
+const GUIDED_NAV: { route: Route; label: string }[] = [
+  { route: { name: "demo", demo: "refund" }, label: "Refund demo" },
+  { route: { name: "demo", demo: "devops" }, label: "DevOps demo" },
+  { route: { name: "connect" }, label: "Connect your agent" },
+];
+
+function ModeSwitch({ guided }: { guided: boolean }) {
+  const item = (active: boolean) =>
+    cx("rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors", active ? "bg-white/[0.1] text-white" : "text-ink-300 hover:text-white");
+  return (
+    <div className="flex shrink-0 items-center rounded-lg bg-white/[0.03] p-0.5 ring-1 ring-white/10" role="group" aria-label="Mode">
+      <a href={guided ? "#/" : href({ name: "demo", demo: "refund" })} className={item(guided)} aria-current={guided ? "page" : undefined} title="Step-by-step explanations for first-time visitors">
+        Guided
+      </a>
+      <a href={href({ name: "executions", lab: "support" })} className={item(!guided)} aria-current={!guided ? "page" : undefined} title="Explorer, timeline, replay studio, failure injection, diff, regression">
+        Developer
+      </a>
+    </div>
+  );
 }
 
 function navHref(name: Route["name"], lab: LabId): string {
@@ -65,6 +89,8 @@ export function App() {
   const route = useRoute();
   const { health, live } = useLabHealth();
   const lab = labOf(route);
+  const guided = isGuided(route);
+  const isActive = (r: Route) => href(r) === href(route);
   const liveModel = lab ? live[lab] : undefined;
 
   return (
@@ -78,9 +104,22 @@ export function App() {
             </span>
           </a>
 
+          <ModeSwitch guided={guided} />
+
+          {guided && (
+            <nav className="hidden min-w-0 items-center gap-1 md:flex" aria-label="Guided">
+              {GUIDED_NAV.map((n) => (
+                <a key={n.label} href={href(n.route)} aria-current={isActive(n.route) ? "page" : undefined} className={cx("rounded-md px-2.5 py-1.5 text-[13px] transition-colors", isActive(n.route) ? "text-white" : "text-ink-300 hover:text-white")}>
+                  {n.label}
+                </a>
+              ))}
+            </nav>
+          )}
+
+          {!guided && (
           <div className="flex shrink-0 items-center rounded-lg bg-white/[0.03] p-0.5 ring-1 ring-white/10">
             {(Object.keys(LABS) as LabId[]).map((id) => {
-              const section = route.name === "home" ? "story" : route.name === "execution" ? "executions" : route.name;
+              const section = !("lab" in route) ? "executions" : route.name === "execution" ? "executions" : route.name;
               const safeTarget = { name: section, lab: id } as Route;
               return (
                 <a
@@ -105,6 +144,13 @@ export function App() {
               );
             })}
           </div>
+          )}
+
+          {!guided && (
+            <a href={href({ name: "import" })} aria-current={route.name === "import" ? "page" : undefined} className={cx("hidden rounded-md px-2.5 py-1.5 text-[13px] lg:inline", route.name === "import" ? "text-white" : "text-ink-300 hover:text-white")}>
+              Import trace
+            </a>
+          )}
 
           {lab && (
             <nav className="hidden min-w-0 items-center gap-1 lg:flex">
@@ -138,6 +184,15 @@ export function App() {
             )}
           </div>
         </div>
+        {guided && (
+          <nav className="flex gap-1 overflow-x-auto border-t hairline px-4 py-1.5 md:hidden" aria-label="Guided">
+            {GUIDED_NAV.map((n) => (
+              <a key={n.label} href={href(n.route)} className="whitespace-nowrap rounded-md px-2 py-1 text-xs text-ink-300 hover:text-white">
+                {n.label}
+              </a>
+            ))}
+          </nav>
+        )}
         {lab && (
           <nav className="flex gap-1 overflow-x-auto border-t hairline px-4 py-1.5 lg:hidden">
             {NAV.map((n) => (
@@ -173,6 +228,12 @@ function View({ route }: { route: Route }) {
   switch (route.name) {
     case "home":
       return <Home />;
+    case "demo":
+      return <GuidedDemo key={route.demo} demo={route.demo} />;
+    case "connect":
+      return <Connect />;
+    case "import":
+      return <ImportTrace />;
     case "story":
       return <Story key={route.lab} lab={route.lab} />;
     case "executions":

@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import type { LabId } from "../api/client";
 
+export type DemoId = "refund" | "devops";
+
 export type Route =
   | { name: "home" }
+  | { name: "demo"; demo: DemoId }
+  | { name: "connect" }
+  | { name: "import" }
   | { name: "story"; lab: LabId }
   | { name: "executions"; lab: LabId }
   | { name: "execution"; lab: LabId; id: string; focus?: string }
@@ -17,6 +22,9 @@ export function parse(hash: string): Route {
   const [pathPart = "", query = ""] = hash.replace(/^#\/?/, "").split("?");
   const params = new URLSearchParams(query);
   const [lab, section, id] = pathPart.split("/").map(decodeURIComponent);
+  if (lab === "demo") return section === "devops" ? { name: "demo", demo: "devops" } : { name: "demo", demo: "refund" };
+  if (lab === "connect") return { name: "connect" };
+  if (lab === "import") return { name: "import" };
   if (!isLab(lab)) return { name: "home" };
   switch (section) {
     case "story":
@@ -40,6 +48,12 @@ export function href(route: Route): string {
   switch (route.name) {
     case "home":
       return "#/";
+    case "demo":
+      return `#/demo/${route.demo}`;
+    case "connect":
+      return "#/connect";
+    case "import":
+      return "#/import";
     case "story":
       return `#/${route.lab}/story`;
     case "executions":
@@ -66,8 +80,22 @@ export function navigate(route: Route): void {
   window.location.hash = href(route);
 }
 
+/** Pretty paths (/demo/refund, /connect, /import) are served the dashboard by the proxy;
+ *  map them onto the hash routes the app uses. */
+function adoptPathname(): void {
+  const m = window.location.pathname.match(/^\/(demo\/(?:refund|devops)|connect|import)\/?$/);
+  if (m && !window.location.hash) window.history.replaceState(null, "", `/#/${m[1]}`);
+}
+
+export function isGuided(route: Route): boolean {
+  return route.name === "home" || route.name === "demo" || route.name === "connect";
+}
+
 export function useRoute(): Route {
-  const [route, setRoute] = useState<Route>(() => parse(window.location.hash));
+  const [route, setRoute] = useState<Route>(() => {
+    adoptPathname();
+    return parse(window.location.hash);
+  });
   useEffect(() => {
     const on = () => {
       setRoute(parse(window.location.hash));
