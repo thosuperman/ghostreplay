@@ -56,7 +56,21 @@ export class ApiError extends Error {
   }
 }
 
+/** On a public deployment each browser gets an anonymous session cookie on its first request,
+ *  and both labs share it (Path=/). If the first requests went out in parallel, each would be
+ *  issued a different session and the last cookie would win, orphaning runs created by the
+ *  others. So the first API call establishes the session once and everything else waits. */
+let sessionReady: Promise<void> | null = null;
+function ensureSession(): Promise<void> {
+  sessionReady ??= fetch(`${LABS.support.base}/api/info`).then(
+    () => undefined,
+    () => undefined, // an unreachable lab is reported by the request that needs it
+  );
+  return sessionReady;
+}
+
 async function request<T>(lab: LabId, path: string, init?: RequestInit): Promise<T> {
+  await ensureSession();
   const res = await fetch(`${LABS[lab].base}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
@@ -70,9 +84,12 @@ async function request<T>(lab: LabId, path: string, init?: RequestInit): Promise
       /* not JSON: usually the dev proxy failing to reach the lab server */
     }
     if (detail === null) {
+      const local = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
       detail =
         res.status >= 500
-          ? `${LABS[lab].name} is not reachable (HTTP ${res.status}). Locally, start it with ./scripts/dev.sh or: uv run ${lab}-agent-lab serve`
+          ? local
+            ? `${LABS[lab].name} is not reachable (HTTP ${res.status}). Locally, start it with ./scripts/dev.sh or: uv run ${lab}-agent-lab serve`
+            : `${LABS[lab].name} is temporarily unavailable (HTTP ${res.status}). Please retry in a moment.`
           : res.statusText || `HTTP ${res.status}`;
     }
     throw new ApiError(detail, res.status);
