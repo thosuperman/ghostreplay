@@ -1,9 +1,7 @@
 # Implementation plan — Dashboard
 
-> **Provenance.** Tasks marked `[x]` were implemented before this repository was opened in
-> Kiro; this spec was written afterwards to document them, and each one was checked against
-> the current code. Unchecked `[ ]` tasks are real, not-yet-done improvements intended to be
-> executed in Kiro (prompts: `docs/kiro-demo-prompts.md`).
+> Tasks marked `[x]` predate this spec; open `[ ]` tasks are carried out in Kiro (prompts:
+> `docs/kiro-demo-prompts.md`).
 
 - [x] 1. Vite + React + TypeScript strict + Tailwind v4 scaffold; dev proxy to both labs
   - _Requirements: 7.1_
@@ -51,7 +49,7 @@
 - [x] 13. Production build (`tsc --noEmit` + `vite build`) in CI
   - _Requirements: 7.1_
 
-- [ ] 14. Inspector: token usage, `served_by` and "Copy as JSON" for model calls
+- [x] 14. Inspector: token usage, `served_by` and "Copy as JSON" for model calls
   - 14.1 Render `response.usage` and `response.served_by` for `model_call` events in
     `components/execution.tsx` (`Inspector`), narrowing from `Json` without `any`
   - 14.2 Add a "Copy as JSON" button for the selected event
@@ -59,12 +57,12 @@
   - Verify: `corepack pnpm --dir apps/dashboard typecheck && corepack pnpm --dir apps/dashboard e2e`
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 15. Explorer list: `live` / `scripted` provenance badge per execution
+- [x] 15. Explorer list: `live` / `scripted` provenance badge per execution
   - 15.1 Render the badge from `ExecutionSummary.model_provider` in `views/Explorer.tsx`
   - 15.2 Extend the explorer e2e test to assert `scripted` on a fresh run
   - Verify: `corepack pnpm --dir apps/dashboard typecheck && corepack pnpm --dir apps/dashboard e2e`
   - _Requirements: 9.1, 9.2_
 
-- [ ] 16. Show default params for new fault kinds (`reordered_response`, `clock_skew`) in the
+- [~] 16. Show default params for new fault kinds (`reordered_response`, `clock_skew`) in the
   Failure Lab once `.kiro/specs/failure-injection` tasks 8–9 land
   - _Requirements: 2.4_

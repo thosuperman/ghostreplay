@@ -137,6 +137,7 @@ export function Explorer({ lab }: { lab: LabId }) {
                 <th className="px-4 py-2.5 text-left font-medium">Execution</th>
                 <th className="px-4 py-2.5 text-left font-medium">Mode</th>
                 <th className="px-4 py-2.5 text-left font-medium">Variant</th>
+                <th className="px-4 py-2.5 text-left font-medium">Model</th>
                 <th className="px-4 py-2.5 text-right font-medium">Tools</th>
                 <th className="px-4 py-2.5 text-right font-medium">Errors</th>
                 <th className="px-4 py-2.5 text-right font-medium">Destructive</th>
@@ -155,6 +156,13 @@ export function Explorer({ lab }: { lab: LabId }) {
                   </td>
                   <td className="px-4 py-2.5"><div className="flex items-center gap-1.5"><ModeBadge mode={r.mode} />{r.status !== "completed" && <StatusBadge status={r.status} />}<ExecTypeBadges e={r} library={libraryIds.has(r.id)} /></div></td>
                   <td className="px-4 py-2.5"><Badge>{r.variant}</Badge></td>
+                  <td className="px-4 py-2.5" data-testid="model-provenance">
+                    {r.model_provider !== "scripted" ? (
+                      <Badge tone="amber" title={`Decisions came from a live model (${r.model_provider}).`}>live</Badge>
+                    ) : (
+                      <Badge title="Decisions came from a deterministic scripted policy, not an LLM.">scripted</Badge>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-right font-mono text-ink-200">{r.tool_calls}</td>
                   <td className={cx("px-4 py-2.5 text-right font-mono", r.errors ? "text-amber-300" : "text-ink-400")}>{r.errors}</td>
                   <td className={cx("px-4 py-2.5 text-right font-mono", r.destructive_calls ? "text-rose-300" : "text-ink-400")}>{r.destructive_calls}</td>

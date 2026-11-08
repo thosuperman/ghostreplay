@@ -1,0 +1,66 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "14. Inspector: token usage, `served_by` and \"Copy as JSON\" for model calls": [
+      {
+        "executionId": "9e80cef0-c0a7-4d44-995d-ee173ce17d64",
+        "chatSessionId": "sess_9171e71a-b533-4935-8f78-3463212888f9",
+        "timestamp": 1794110348579
+      },
+      {
+        "executionId": "9e80cef0-c0a7-4d44-995d-ee173ce17d64",
+        "chatSessionId": "sess_9171e71a-b533-4935-8f78-3463212888f9",
+        "timestamp": 1794110356346
+      },
+      {
+        "executionId": "b6f0e29d-e372-45f0-a13b-7251c22a2343",
+        "chatSessionId": "sess_59c15be9-8e03-43a5-ae2f-a761f7d11afa",
+        "timestamp": 1794140791653
+      },
+      {
+        "executionId": "b6f0e29d-e372-45f0-a13b-7251c22a2343",
+        "chatSessionId": "sess_59c15be9-8e03-43a5-ae2f-a761f7d11afa",
+        "timestamp": 1794140798436
+      },
+      {
+        "executionId": "b6f0e29d-e372-45f0-a13b-7251c22a2343",
+        "chatSessionId": "sess_59c15be9-8e03-43a5-ae2f-a761f7d11afa",
+        "timestamp": 1794142417875
+      }
+    ],
+    "15. Explorer list: `live` / `scripted` provenance badge per execution": [
+      {
+        "executionId": "9e80cef0-c0a7-4d44-995d-ee173ce17d64",
+        "chatSessionId": "sess_9171e71a-b533-4935-8f78-3463212888f9",
+        "timestamp": 1794110348814
+      },
+      {
+        "executionId": "b6f0e29d-e372-45f0-a13b-7251c22a2343",
+        "chatSessionId": "sess_59c15be9-8e03-43a5-ae2f-a761f7d11afa",
+        "timestamp": 1794140791762
+      },
+      {
+        "executionId": "b6f0e29d-e372-45f0-a13b-7251c22a2343",
+        "chatSessionId": "sess_59c15be9-8e03-43a5-ae2f-a761f7d11afa",
+        "timestamp": 1794142421820
+      },
+      {
+        "executionId": "b6f0e29d-e372-45f0-a13b-7251c22a2343",
+        "chatSessionId": "sess_59c15be9-8e03-43a5-ae2f-a761f7d11afa",
+        "timestamp": 1794143070772
+      }
+    ],
+    "16. Show default params for new fault kinds (`reordered_response`, `clock_skew`) in the": [
+      {
+        "executionId": "9e80cef0-c0a7-4d44-995d-ee173ce17d64",
+        "chatSessionId": "sess_9171e71a-b533-4935-8f78-3463212888f9",
+        "timestamp": 1794110348968
+      },
+      {
+        "executionId": "b6f0e29d-e372-45f0-a13b-7251c22a2343",
+        "chatSessionId": "sess_59c15be9-8e03-43a5-ae2f-a761f7d11afa",
+        "timestamp": 1794140791854
+      }
+    ]
+  }
+}

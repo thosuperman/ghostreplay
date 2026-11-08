@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import type { LabId } from "../api/client";
 import type { Execution, ExecutionSummary, GREvent, InvariantResult } from "../api/types";
-import { describe, ms, offset, shortId } from "../lib/format";
+import { describe, isRecord, ms, offset, shortId } from "../lib/format";
 import { href } from "../lib/router";
 import {
   Badge,
+  Button,
   cx,
   InvariantBadge,
   JsonView,
@@ -12,6 +13,7 @@ import {
   ModeBadge,
   Select,
   SourceBadge,
+  Stat,
   Verdict,
   VerdictChip,
 } from "./ui";
@@ -118,6 +120,57 @@ export function Timeline({ execution, selected, onSelect, highlight = [], compac
 
 type Tab = "request" | "response" | "state" | "fault" | "replay" | "raw";
 
+/** Reads `usage` (numeric counters) and `served_by` from a model_call response, if present. */
+function modelUsage(event: GREvent): { usage: [string, number][]; servedBy: string | null } | null {
+  if (event.kind !== "model_call" || !isRecord(event.response)) return null;
+  const rawUsage = event.response.usage;
+  const usage = isRecord(rawUsage)
+    ? Object.entries(rawUsage).filter((entry): entry is [string, number] => typeof entry[1] === "number")
+    : [];
+  const rawServed = event.response.served_by;
+  const servedBy = typeof rawServed === "string" && rawServed ? rawServed : null;
+  if (usage.length === 0 && !servedBy) return null;
+  return { usage, servedBy };
+}
+
+function ModelUsage({ event }: { event: GREvent }) {
+  const info = modelUsage(event);
+  if (!info) return null;
+  // Scripted models report character counts, live adapters report tokens. Say which.
+  const chars = info.usage.some(([k]) => k.endsWith("_chars"));
+  return (
+    <div data-testid="model-usage" className="mt-3 rounded-lg border hairline bg-white/[0.02] px-3 py-2">
+      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
+        Usage {chars ? "· characters (scripted model)" : "· tokens"}
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {info.usage.map(([k, v]) => (
+          <Stat key={k} label={k.replace(/_/g, " ")} value={<span className="font-mono">{v.toLocaleString()}</span>} />
+        ))}
+        {info.servedBy && <Stat label="served by" value={<span className="font-mono text-[12px]">{info.servedBy}</span>} hint="the model that actually answered" />}
+      </div>
+    </div>
+  );
+}
+
+function CopyJsonButton({ event }: { event: GREvent }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(event, null, 2));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable (insecure context): the Raw tab still shows the JSON */
+    }
+  };
+  return (
+    <Button variant="ghost" className="ml-auto px-2 py-0.5 text-xs" title="Copy the full event as JSON" onClick={() => void copy()}>
+      {copied ? "Copied" : "Copy as JSON"}
+    </Button>
+  );
+}
+
 export function Inspector({ event }: { event: GREvent | undefined }) {
   const [tab, setTab] = useState<Tab>("request");
   if (!event) {
@@ -140,6 +193,7 @@ export function Inspector({ event }: { event: GREvent | undefined }) {
           <span className="font-mono text-sm font-semibold text-white">{event.name}</span>
           <SourceBadge source={event.source} />
           {event.destructive && <Badge tone="red">destructive</Badge>}
+          <CopyJsonButton event={event} />
         </div>
         <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-[11px] text-ink-400">
           <span>seq {event.seq}</span>
@@ -148,6 +202,7 @@ export function Inspector({ event }: { event: GREvent | undefined }) {
           {event.parent_event_id && <span className="col-span-3 truncate">parent {event.parent_event_id}</span>}
           {event.match_key && <span className="col-span-3 truncate" title="hash of kind + name + redacted request, used for replay matching">match key {event.match_key}</span>}
         </div>
+        <ModelUsage event={event} />
       </div>
       <div className="flex gap-1 border-b hairline px-3 py-1.5">
         {tabs.filter((t) => t.show).map((t) => (

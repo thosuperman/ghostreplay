@@ -21,6 +21,27 @@ test("explorer records a run and opens its timeline", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`#/${LAB}/executions/rec_`));
   await expect(page.getByText("payments.create_refund").first()).toBeVisible();
   await expect(page.getByText(/scripted/i).first()).toBeVisible();
+
+  const id = new URL(page.url()).hash.split("/").pop()?.split("?")[0] ?? "";
+  expect(id).toMatch(/^rec_/);
+  await page.goto(`/#/${LAB}/executions`);
+  const row = page.locator("tbody tr").filter({ hasText: id });
+  await expect(row.getByTestId("model-provenance")).toHaveText("scripted");
+});
+
+test("inspector shows model usage and offers copy as JSON", async ({ page }) => {
+  const { incident } = await prepareDemo(page.request);
+  const res = await page.request.get(`/lab/${LAB}/api/executions/${incident}`);
+  expect(res.ok()).toBeTruthy();
+  const execution = (await res.json()) as { events: { kind: string; name: string }[] };
+  const modelCall = execution.events.find((e) => e.kind === "model_call");
+  expect(modelCall).toBeDefined();
+  await page.goto(`/#/${LAB}/executions/${incident}`);
+  await page.locator("ol > li").filter({ hasText: modelCall!.name }).first().click();
+  const usage = page.getByTestId("model-usage");
+  await expect(usage).toBeVisible();
+  await expect(usage).toContainText(/scripted model/i);
+  await expect(page.getByRole("button", { name: "Copy as JSON" })).toBeVisible();
 });
 
 test("replay studio streams an offline replay that matches the recording", async ({ page }) => {
