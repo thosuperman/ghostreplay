@@ -61,7 +61,7 @@
     `corepack pnpm --dir apps/dashboard typecheck`
   - _Requirements: 8.1, 8.2, 8.3, 1.3_
 
-- [-] 9. Add the `clock_skew` fault kind for nondeterminism
+- [x] 9. Add the `clock_skew` fault kind for nondeterminism
   - 9.1 Extend `FaultTarget.kind` with `"nondeterminism"` in `models/faults.py`; mirror in
     `apps/dashboard/src/api/types.ts` (schema-sync hook)
   - 9.2 Catalog entry + `_transform` branch shifting the ISO timestamp by `skew_ms`
@@ -72,7 +72,7 @@
     `corepack pnpm --dir apps/dashboard typecheck`
   - _Requirements: 9.1, 9.2, 9.3_
 
-- [~] 10. `export-cases --preset` and a pytest for the demo exit status
+- [ ] 10. `export-cases --preset` and a pytest for the demo exit status
   - 10.1 `server/cli.py`: `--preset` option for `export-cases`; unknown id → message + exit 2
   - 10.2 Tests in `apps/support-agent/tests/test_duplicate_refund.py` and
     `apps/devops-agent/tests/test_unsafe_infra_action.py`: `main(["--db", tmp, "demo"]) == 0`;
