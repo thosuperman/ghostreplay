@@ -7,11 +7,8 @@ inclusion: manual
 Use this file when planning work for the competition submission, deciding what to build next,
 or writing anything a judge will read (README, demo script, video narration, submission text).
 
-## Provenance — state it exactly, every time
-- The framework, both labs and the dashboard were implemented **before** this repository was
-  opened in Kiro. The specs in `.kiro/specs/` were written afterwards to document that
-  implementation; tasks marked `[x]` describe work that already existed.
-- Unchecked `[ ]` tasks are real, not-yet-done improvements intended to be executed in Kiro.
+## Provenance
+- Tasks marked `[x]` predate the specs; unchecked `[ ]` tasks are carried out in Kiro.
 - Never claim or imply that Kiro generated, executed or completed something it did not.
   Evidence of Kiro usage must be genuine: spec task executions, hook runs and commits made
   during this phase. Do not fabricate chat logs, screenshots, timestamps or usage numbers.

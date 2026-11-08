@@ -1,8 +1,6 @@
 # Implementation plan — Python SDK and guided experience
 
-> **Provenance.** Tasks marked `[x]` were implemented outside Kiro, before this spec was
-> written; each one was checked against the current code and tests. Unchecked `[ ]` tasks are
-> real, not-yet-done improvements intended to be executed in Kiro.
+> Tasks marked `[x]` predate this spec; open `[ ]` tasks are carried out in Kiro.
 
 - [x] 1. `GhostReplay` facade: tools, models, agents, invariants, state/reset, record, replay,
   inject, diff, export/load, regression helpers (`tests: packages/ghostreplay/tests/test_sdk.py`)

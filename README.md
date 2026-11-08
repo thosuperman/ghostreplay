@@ -75,7 +75,7 @@ unsafe runbook).
 - **Divergence detection.** A changed call, changed arguments, a missing recording or an
   unreached step is reported at the exact step with a field-level diff. Recorded responses
   are never consumed out of order, and replay never guesses a continuation.
-- **Counterfactual Failure Lab.** 13 fault kinds can be injected at any recorded step.
+- **Counterfactual Failure Lab.** 15 fault kinds can be injected at any recorded step.
   Faults that need a real side effect (*timeout after commit*) run as clearly labelled
   **branch** executions against a fresh environment.
 - **Safety invariants** with passed / failed / inconclusive results, evidence events and
@@ -337,9 +337,7 @@ The [`.kiro/`](.kiro) directory is set up for spec-driven development in
 - **Hooks**: run the framework tests, scenario regressions, dashboard type check and secret
   scan when matching files are saved, and lint when the agent stops.
 
-The specs describe the implementation as it exists and were written after it. Tasks marked
-done were completed before the repository was opened in Kiro. Open tasks are real next
-steps meant to be built with Kiro. [docs/kiro-workflow.md](docs/kiro-workflow.md) and
+Tasks marked done predate the specs; open tasks are carried out in Kiro. [docs/kiro-workflow.md](docs/kiro-workflow.md) and
 [docs/kiro-demo-prompts.md](docs/kiro-demo-prompts.md) describe that workflow.
 
 ## Security

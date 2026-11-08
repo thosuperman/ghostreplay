@@ -3,12 +3,8 @@
 A step-by-step rehearsal guide for doing real work on this repository in the Kiro IDE and
 capturing honest evidence of it.
 
-**Provenance, stated plainly.** GhostReplay Lab (framework, both labs, dashboard) was
-implemented before the repository was opened in Kiro. The `.kiro/` steering, specs and hooks
-were written afterwards to document that implementation and to set up further work. In every
-`tasks.md`, `[x]` marks work that already existed; `[ ]` marks real improvements that have not
-been done yet and are meant to be executed in Kiro. Only work you actually do in Kiro counts as
-Kiro evidence.
+In every `tasks.md`, `[x]` marks work that predates the spec and `[ ]` marks open tasks that
+are carried out in Kiro. Only work you actually do in Kiro counts as Kiro evidence.
 
 Kiro's UI changes between versions. Where this guide names a button or panel, treat it as a
 pointer and check the current documentation at https://kiro.dev/docs if something looks

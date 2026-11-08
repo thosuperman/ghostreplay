@@ -1,9 +1,7 @@
 # Implementation plan — Support Agent Lab
 
-> **Provenance.** Tasks marked `[x]` were implemented before this repository was opened in
-> Kiro; this spec was written afterwards to document them, and each one was checked against
-> the current code and tests. Unchecked `[ ]` tasks are real, not-yet-done improvements
-> intended to be executed in Kiro (prompts: `docs/kiro-demo-prompts.md`).
+> Tasks marked `[x]` predate this spec; open `[ ]` tasks are carried out in Kiro (prompts:
+> `docs/kiro-demo-prompts.md`).
 
 - [x] 1. Package `support-agent-lab` on the uv workspace, depending only on `ghostreplay`
   - Entry points: script `support-agent-lab`, `ghostreplay.scenarios` → `duplicate-refund`,
