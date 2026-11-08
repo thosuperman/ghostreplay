@@ -1,8 +1,14 @@
 """The invoice agent, instrumented with the public GhostReplay SDK.
 
 Everything GhostReplay records goes through the decorated functions below: one model
-function (invoice extraction) and three tools. The buggy agent retries a timed-out payment
-blindly; the fixed agent uses an idempotency key and checks the ledger before retrying.
+function (invoice extraction) and four tools. The tools do real work: SQL queries and writes
+against the app's SQLite database and HTTP requests to a local payment service (see
+``payments.py``). The buggy agent retries a timed-out payment blindly; the fixed agent uses an
+idempotency key and checks the ledger before retrying.
+
+Extraction uses a real LLM (Claude, through the Anthropic SDK) when ``INVOICE_AGENT_LIVE=1``
+and ``ANTHROPIC_API_KEY`` are set; otherwise a deterministic parser stands in, and recordings
+are labelled accordingly. Either way, replays serve the recorded extraction without calling it.
 """
 
 from __future__ import annotations
@@ -14,13 +20,17 @@ from typing import Any
 from ghostreplay import GhostReplay, ToolTimeout, TraceView
 from ghostreplay.invariants import errors_surfaced
 
-from .payments import LEDGER, VENDORS
+from . import payments
+
+LIVE = os.environ.get("INVOICE_AGENT_LIVE") == "1" and bool(os.environ.get("ANTHROPIC_API_KEY"))
+MODEL = os.environ.get("INVOICE_AGENT_MODEL", "claude-opus-5-5")
 
 ghost = GhostReplay(
     "invoice-agent",
     storage=os.environ.get("INVOICE_AGENT_DATA", ".ghostreplay-invoice"),
     title="Invoice Processing Agent",
-    description="Extracts an invoice, validates it and pays the vendor once.",
+    description="Extracts an invoice with an LLM, validates it, stores it and pays the vendor once.",
+    live_models=LIVE,
     default_task={
         "document": "INVOICE INV-2041\nVendor: ACME-SUPPLY\nAmount due: $129.00\nTerms: NET 30"
     },
@@ -28,13 +38,39 @@ ghost = GhostReplay(
 
 MAX_ATTEMPTS = 3
 
+_EXTRACT_TOOL = {
+    "name": "record_invoice",
+    "description": "Record the fields extracted from the invoice document.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "invoice_id": {"type": "string", "description": "Invoice number, e.g. INV-2041"},
+            "vendor": {"type": "string", "description": "Vendor id exactly as written"},
+            "amount_cents": {"type": "integer", "description": "Amount due in cents"},
+        },
+        "required": ["invoice_id", "vendor", "amount_cents"],
+    },
+}
+
 
 # -- the model ----------------------------------------------------------------------------
-# A deterministic extractor stands in for an LLM so the example runs offline and free. To use
-# a real model, call your LLM client inside this function (and pass live_models=True to
-# GhostReplay); replays will still serve the recorded output without calling the API.
 @ghost.model("invoice-extractor")
 def extract_invoice(document: str) -> dict[str, Any]:
+    if LIVE:
+        import anthropic
+
+        client = anthropic.Anthropic()
+        msg = client.messages.create(
+            model=MODEL,
+            max_tokens=2048,
+            system="You extract invoice fields. Call record_invoice exactly once.",
+            tools=[_EXTRACT_TOOL],
+            messages=[{"role": "user", "content": f"Extract the invoice fields:\n\n{document}"}],
+        )
+        block = next((b for b in msg.content if b.type == "tool_use"), None)
+        if block is None:
+            return {"error": "the model did not return the invoice fields"}
+        return {**dict(block.input), "extracted_by": msg.model}
     number = re.search(r"INVOICE\s+(\S+)", document)
     vendor = re.search(r"Vendor:\s*(\S+)", document)
     amount = re.search(r"Amount due:\s*\$([\d,]+\.\d{2})", document)
@@ -44,40 +80,55 @@ def extract_invoice(document: str) -> dict[str, Any]:
         "invoice_id": number.group(1),
         "vendor": vendor.group(1),
         "amount_cents": round(float(amount.group(1).replace(",", "")) * 100),
+        "extracted_by": "deterministic parser (no LLM)",
     }
 
 
-# -- the tools ----------------------------------------------------------------------------
+# -- the tools (real SQL and HTTP) ------------------------------------------------------------
 @ghost.tool("invoices.validate")
 def validate_invoice(invoice_id: str, vendor: str, amount_cents: int) -> dict[str, Any]:
-    """Check the vendor is approved and the amount is within its purchase-order limit."""
-    limit = VENDORS.get(vendor)
+    """Check the vendor is approved and the amount is within its purchase-order limit (SQL)."""
+    row = payments.world().vendor(vendor)
+    limit = row["po_limit_cents"] if row else None
     ok = limit is not None and 0 < amount_cents <= limit
     return {"invoice_id": invoice_id, "approved": ok, "limit_cents": limit}
+
+
+@ghost.tool("invoices.store")
+def store_invoice(invoice_id: str, vendor: str, amount_cents: int) -> dict[str, Any]:
+    """Check for an existing record and store the invoice (SQL transaction)."""
+    existing = payments.world().find_invoice(invoice_id)
+    stored = payments.world().store_invoice(invoice_id, vendor, amount_cents)
+    return {**stored, "already_on_file": existing is not None}
 
 
 @ghost.tool("payments.pay", destructive=True)
 def pay(
     invoice_id: str, vendor: str, amount_cents: int, idempotency_key: str | None = None
 ) -> dict[str, Any]:
-    """Pay a vendor (simulated). Commits immediately."""
-    return LEDGER.pay(invoice_id, vendor, amount_cents, idempotency_key)
+    """Request a payment from the local payment service (HTTP POST, commits immediately)."""
+    return payments.world().pay(invoice_id, vendor, amount_cents, idempotency_key)
 
 
 @ghost.tool("payments.list")
 def list_payments(invoice_id: str) -> list[dict[str, Any]]:
-    """Payments already committed for an invoice (simulated ledger lookup)."""
-    return LEDGER.for_invoice(invoice_id)
+    """Payments already committed for an invoice (HTTP GET)."""
+    return payments.world().payments_for(invoice_id)
 
 
 @ghost.reset
 def _reset() -> None:
-    LEDGER.reset()
+    payments.reset()
+
+
+@ghost.teardown
+def _teardown() -> None:
+    payments.reset()
 
 
 @ghost.state
 def _state() -> dict[str, Any]:
-    return LEDGER.snapshot()
+    return payments.snapshot()
 
 
 # -- the agents ---------------------------------------------------------------------------
@@ -88,6 +139,7 @@ def _prepare(task: dict[str, Any]) -> dict[str, Any] | str:
     check = validate_invoice(invoice["invoice_id"], invoice["vendor"], invoice["amount_cents"])
     if not check["approved"]:
         return f"invoice {invoice['invoice_id']} is not approved for payment"
+    store_invoice(invoice["invoice_id"], invoice["vendor"], invoice["amount_cents"])
     return invoice
 
 

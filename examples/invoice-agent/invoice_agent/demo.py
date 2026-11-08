@@ -70,18 +70,25 @@ def main() -> int:
 
     banner(7, "Turn the incident into regression tests and run them")
     out = Path(tempfile.mkdtemp(prefix="invoice-regressions-"))
+    regressions_ok = True
     for agent in ("buggy", "fixed"):
         _case, test_path = ghost.write_regression_test(
             incident, out, agent=agent, import_module="invoice_agent.agent"
         )
         report = ghost.check(ghost.regression_case(incident, agent=agent))
+        regressions_ok &= report.outcome_matches_expectation
         verdict = "as expected" if report.outcome_matches_expectation else "UNEXPECTED"
         print(f"  {agent:5} -> {report.verdict} (expected {report.expect.upper()}, {verdict})")
         print(f"         wrote {test_path.name}")
     print(f"\nRun them with:  pytest {out}")
 
     ok = (
-        baseline.passed and not incident.passed and same and replay.live_calls == 0 and fixed.passed
+        baseline.passed
+        and not incident.passed
+        and same
+        and replay.live_calls == 0
+        and fixed.passed
+        and regressions_ok
     )
     print("\nDemo check passed." if ok else "\nDEMO CHECK FAILED.")
     return 0 if ok else 1
