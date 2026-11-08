@@ -7,7 +7,7 @@ GhostReplay records what happened, reproduces it without repeating the side effe
 proves that the corrected agent no longer makes it.
 
 - Live demo: https://ghostreplay.hayaix.tech
-- Video: `<VIDEO_URL>`
+- Video: https://youtu.be/J2ttyDNMfDY
 - Source code (MIT): https://github.com/thosuperman/ghostreplay
 
 ---
@@ -272,22 +272,27 @@ The repository contains a `.kiro/` directory that documents the project for Kiro
   keep the dashboard's TypeScript types in sync with the Pydantic schema, run lint and format
   checks, and scan for secrets.
 
-Tasks marked `[x]` in the specs predate them; the open tasks are carried out in Kiro.
+Tasks marked `[x]` in the specs predate them; the open tasks were carried out in Kiro.
 
-<!-- TO BE COMPLETED BY THE AUTHOR after real Kiro sessions:
-Replace this comment with an honest account of what you actually did in Kiro. Describe only
-work you can show evidence for (screenshots, recordings or commits). For example:
-- Which spec(s) you opened or refined in Kiro, and what changed in requirements/design/tasks
-  as a result (link the commits).
-- Which tasks from a tasks.md you executed with Kiro, and what the resulting change was.
-- Which agent hooks fired during your work, what they ran, and anything they caught
-  (for example a failing guarantee test or a schema mismatch), with a screenshot.
-- How steering documents influenced Kiro's output (for example the honesty or security rules).
-- Any spec-driven vs. vibe-coding comparison you actually experienced.
-- What you would do differently with Kiro next time.
-Do not include stats, timelines or chat logs you did not capture. Delete this paragraph and
-the sentence above it if it no longer applies.
--->
+### Spec tasks executed in Kiro
+
+We picked open tasks from the specs and ran them in Kiro's spec task view (Kiro 1.4.121). Kiro records each
+execution in the spec's `tasks.meta.json`, which is committed alongside the result:
+
+| Spec | Task | Result |
+|---|---|---|
+| `failure-injection` | 8. `reordered_response` fault kind | New fault kind: list items arrive reversed or rotated |
+| `failure-injection` | 9. `clock_skew` fault kind | New fault kind on `clock.now` reads, so expiry and freshness checks can be broken on purpose. The catalog grew from 13 to 15 kinds |
+| `devops-agent-lab` | 10. Invariant `infra.approval_chain_valid` | Fails on self-approved changes, actions that differ from the approved one, and proposals without evidence |
+| `devops-agent-lab` | 11. `probe-timeout` preset and honest recovery in the SafetyGate | A failed probe blocks the action and is recorded as a handled, recovered error |
+| `dashboard` | 14. Inspector: token usage, `served_by` and "Copy as JSON" | Model calls show usage (tokens, or characters for the scripted model) |
+| `dashboard` | 15. Explorer: `live` / `scripted` badge | Every execution says whether a live model or a scripted policy decided |
+| `dashboard` | 16. Failure Lab defaults for the new fault kinds | Clock reads become selectable targets for `clock_skew` |
+
+Each task followed the spec's own rule: write or extend a test first, implement, run the
+verification commands, then tick the task. The steering file `competition.md` kept Kiro's
+changes within scope, and the honesty rules meant new UI says where a decision came from.
+The commits are `33630a9`, `9f4e5ce` and `81610d8`.
 
 ## Challenges we ran into
 

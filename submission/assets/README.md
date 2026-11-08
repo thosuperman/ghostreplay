@@ -25,7 +25,7 @@ What visual material exists in the repository, and what the author still has to 
 
 | Asset | How | Status |
 |---|---|---|
-| Demo video (2:44) | `submission/demo/video/out/` (generated, git-ignored; see `submission/demo/video/README.md`) | Recorded. Upload it and replace `<VIDEO_URL>`. |
+| Demo video (2:44) | `submission/demo/video/out/` (generated, git-ignored; see `submission/demo/video/README.md`) | Uploaded: https://youtu.be/J2ttyDNMfDY |
 | Kiro screenshots | Capture during real Kiro sessions (`docs/kiro-workflow.md`; items 15 to 18 in `submission/demo/screenshots-checklist.md`) | Not captured. Must be genuine. |
 | Terminal screenshots | Items 11 and 12 in the screenshots checklist | Not captured. |
 | CI screenshot | GitHub Actions run page | CI has run green on GitHub. Capture it after the latest commits are pushed. |

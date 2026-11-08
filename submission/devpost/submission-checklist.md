@@ -49,8 +49,7 @@ Kiroween rules page; this checklist does not replace it.
 - [x] Video recorded from the live site with voiceover (2:44, 1920 × 1080):
       `submission/demo/video/out/ghostreplay-demo.mp4` plus `.srt` captions
       (`submission/demo/video/README.md`). Thumbnail: `submission/thumbnail/thumbnail.png`.
-- [ ] **(owner)** Upload it (YouTube or Vimeo, public or unlisted as the rules allow) with the
-      thumbnail and captions, and replace `<VIDEO_URL>`.
+- [x] Uploaded: https://youtu.be/J2ttyDNMfDY
 - [ ] Check the video: no API keys, no personal notifications, no private browser tabs,
       readable text, audio levels consistent.
 
@@ -75,7 +74,7 @@ Kiroween rules page; this checklist does not replace it.
 - [ ] **(owner)** Built with: tags from `submission/devpost/technologies.md`.
 - [ ] **(owner)** Category: Skeleton Crew. Explain the shared framework and the two apps
       (the "Skeleton Crew" section of the description does this).
-- [ ] **(owner)** Links: repository URL, https://ghostreplay.hayaix.tech, `<VIDEO_URL>`.
+- [ ] **(owner)** Links: https://github.com/thosuperman/ghostreplay, https://ghostreplay.hayaix.tech, https://youtu.be/J2ttyDNMfDY.
 - [ ] **(owner)** Image gallery: the ten screenshots in `submission/gallery/`, in order, with
       the captions from `submission/gallery/README.md`.
 - [ ] **(owner)** Team members and any additional questions the form asks.

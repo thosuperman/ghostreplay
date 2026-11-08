@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <b>Live demo: <a href="https://ghostreplay.hayaix.tech">ghostreplay.hayaix.tech</a></b>
+  <b>Live demo: <a href="https://ghostreplay.hayaix.tech">ghostreplay.hayaix.tech</a> · <a href="https://youtu.be/J2ttyDNMfDY">Demo video (2:44)</a></b>
   — no sign-up, no API keys.<br/>
   <a href="https://ghostreplay.hayaix.tech/demo/refund">Watch an AI agent fail</a> ·
   <a href="https://ghostreplay.hayaix.tech/demo/devops">DevOps demo</a> ·
