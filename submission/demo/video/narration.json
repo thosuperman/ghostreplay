@@ -1,0 +1,46 @@
+{
+  "voice": "Daniel",
+  "rate": 148,
+  "segments": [
+    {
+      "id": "problem",
+      "say": "A I agents don't just chat any more. They issue refunds, and they change infrastructure. When one makes an expensive mistake, it is very hard to reproduce. [[slnc 300]] GhostReplay is a flight recorder, and a crash test lab, for A I agents.",
+      "caption": "AI agents don't just chat any more. They issue refunds, and they change infrastructure. When one makes an expensive mistake, it is very hard to reproduce. GhostReplay is a flight recorder, and a crash-test lab, for AI agents."
+    },
+    {
+      "id": "failure",
+      "say": "Here is a real support agent. Claude decides which tools to call. The tools are real too: a sequel database, and an H T T P refund service, running on our server. [[slnc 250]] A customer asks for a one hundred and twenty nine dollar refund. Let's run it. [[slnc 400]] The customer received two hundred and fifty eight dollars. Two refunds were committed. The safety check failed.",
+      "caption": "Here is a real support agent. Claude decides which tools to call. The tools are real too: a SQL database, and an HTTP refund service, running on our server. A customer asks for a $129 refund. Let's run it. The customer received $258. Two refunds were committed. The safety check failed."
+    },
+    {
+      "id": "investigate",
+      "say": "GhostReplay recorded every step, and who took it. Claude asked for one refund. The refund service committed it, but its reply was delayed past the timeout. [[slnc 200]] That delay is our injected fault. Then the application's retry policy sent the same request again, with no idempotency key.",
+      "caption": "GhostReplay recorded every step, and who took it. Claude asked for one refund. The refund service committed it, but its reply was delayed past the timeout. That delay is our injected fault. Then the application's retry policy sent the same request again, with no idempotency key."
+    },
+    {
+      "id": "replay",
+      "say": "Now we replay the incident, offline. Every model and tool response comes from the recording. Nothing is executed: no model call, no refund, no database write. [[slnc 250]] And the result is identical.",
+      "caption": "Now we replay the incident, offline. Every model and tool response comes from the recording. Nothing is executed: no model call, no refund, no database write. And the result is identical."
+    },
+    {
+      "id": "fix",
+      "say": "The fix: a stable idempotency key, and a check before retrying. The corrected agent runs again, for real, under the same failure. [[slnc 250]] One refund. One hundred and twenty nine dollars. [[slnc 300]] GhostReplay then turns the incident into regression tests. Before the fix: failed. After the fix: passed.",
+      "caption": "The fix: a stable idempotency key, and a check before retrying. The corrected agent runs again, for real, under the same failure. One refund. $129. GhostReplay then turns the incident into regression tests. Before the fix: failed. After the fix: passed."
+    },
+    {
+      "id": "devops",
+      "say": "Same framework, a different agent. An auto remediation workflow sees stale monitoring data. In our live run, Claude refused to terminate the servers. [[slnc 200]] But the workflow itself has no safeguard. So we inject that unsafe decision. Version one really shuts down three healthy services. Version two blocks it, and asks a human.",
+      "caption": "Same framework, a different agent. An auto-remediation workflow sees stale monitoring data. In our live run, Claude refused to terminate the servers. But the workflow itself has no safeguard. So we inject that unsafe decision. Version one really shuts down three healthy services. Version two blocks it, and asks a human."
+    },
+    {
+      "id": "sdk",
+      "say": "And it works with your own agent. Install the Python S D K, and decorate your tools and model calls. Then record, replay offline, inject failures, and generate pie test regressions. This quickstart is tested in C I.",
+      "caption": "And it works with your own agent. Install the Python SDK, and decorate your tools and model calls. Then record, replay offline, inject failures, and generate pytest regressions. This quickstart is tested in CI."
+    },
+    {
+      "id": "close",
+      "say": "One framework. Multiple agents. Reproducible failures. Verified fixes. [[slnc 300]] GhostReplay. Catch the bug. Replay the failure. Prove the fix.",
+      "caption": "One framework. Multiple agents. Reproducible failures. Verified fixes. GhostReplay: catch the bug, replay the failure, prove the fix."
+    }
+  ]
+}

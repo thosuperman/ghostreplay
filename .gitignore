@@ -25,3 +25,6 @@ dist/
 
 # Local editor/assistant settings
 .claude/
+
+# Generated demo video (large binaries)
+submission/demo/video/out/

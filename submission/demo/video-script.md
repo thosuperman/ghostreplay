@@ -1,5 +1,8 @@
 # Demo video script
 
+A finished cut, recorded from the live site with a synthetic male voiceover, is produced by
+`submission/demo/video/` (see its README). Its narration is in `submission/demo/video/narration.json`.
+
 The script is maintained in one place: [`docs/demo-script.md`](../../docs/demo-script.md).
 It runs under 3:00 and follows this order:
 
