@@ -544,7 +544,7 @@ class Lab:
                 model=model.model,
                 model_is_live=model.is_live,
                 label=model.label,
-                tool_backends="simulated (in-memory)",
+                tool_backends=scenario.tool_backends,
             )
         else:
             assert reference is not None

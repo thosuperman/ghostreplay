@@ -185,7 +185,9 @@ class Run:
             1
             for e in self.execution.events
             if e.kind in (EventKind.TOOL_CALL, EventKind.MODEL_CALL)
-            and e.source.value == "recorded"
+            and e.replay is not None
+            and e.source.value
+            in ("recorded", "injected")  # injected: a recorded fault, served again
         )
 
     def explain(self) -> str:
@@ -278,6 +280,7 @@ class _SdkScenario(Scenario):
         self.fix_explanation = ""
         self.conditions = ()
         self.headline_invariant = ""
+        self.tool_backends = "your @ghost.tool functions"
 
     @property
     def variants(self) -> tuple[Variant, ...]:  # type: ignore[override]

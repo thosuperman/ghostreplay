@@ -218,3 +218,18 @@ def test_capture_files_are_valid_redacted_traces():
         raw = f.read_text()
         assert "sk-ant-" not in raw and "ANTHROPIC_API_KEY" not in raw
         assert json.loads(raw)["schema_version"] == "ghostreplay/v1"
+
+
+def test_an_injected_model_decision_stays_labelled_when_replayed_or_reexecuted():
+    store = SqliteStore(":memory:")
+    lab = build_devops(store)
+    ids = load_library(store, lab.library_dir)
+    injected = next(i for i in ids if store.get(i).faults and store.get(i).variant == "vulnerable")
+    for run in (lab.reexecute(injected), lab.replay(injected)):
+        decisions = [e for e in run.events if e.kind.value == "model_call" and e.fault is not None]
+        assert len(decisions) == 1, run.mode
+        assert decisions[0].source.value == "injected"
+        names = [c["name"] for c in decisions[0].response["tool_calls"]]
+        assert names == ["ec2.terminate_instances"]
+    again = lab.reexecute(injected)
+    assert [i["live_probe"] for i in again.final_state["instances"]] == ["unreachable"] * 3

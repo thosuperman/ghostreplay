@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, LABS } from "../api/client";
-import type { Execution, GREvent, RegressionReport, Scenario, TraceDiff } from "../api/types";
+import { api } from "../api/client";
+import type { Execution, GREvent, Library, RegressionReport, TraceDiff } from "../api/types";
+import { ExecTypeBadges } from "../components/ExecTypeBadges";
 import { Inspector, Timeline } from "../components/execution";
 import { Badge, Button, cx, ErrorBox, Spinner } from "../components/ui";
 import { href, type DemoId } from "../lib/router";
-import { countBySource, DEMOS, reportFor, type CompareRow, type Fact, type StoryLine } from "./guided/demos";
+import { DEMOS, replayEvidence, type Actor, type CaptureIds, type CompareRow, type Fact, type StoryLine } from "./guided/demos";
 
 const REPO = "https://github.com/thosuperman/ghost-replay";
-
+const STEP_TITLES = ["Meet the agent", "Watch the failure", "Investigate", "Replay safely", "Test the fix", "Verify the fix"];
 
 interface State {
+  natural?: Execution;
   buggy?: Execution;
   replay?: Execution;
   replayDiff?: TraceDiff;
@@ -18,62 +20,72 @@ interface State {
   reports?: RegressionReport[];
 }
 
-const STEP_TITLES = ["Meet the agent", "Watch the failure", "Investigate", "Replay safely", "Test the fix", "Verify the fix"];
-
 export function GuidedDemo({ demo }: { demo: DemoId }) {
   const cfg = DEMOS[demo];
   const lab = cfg.lab;
-  const [scenario, setScenario] = useState<Scenario>();
+  const [library, setLibrary] = useState<Library>();
   const [state, setState] = useState<State>({});
-  const [busy, setBusy] = useState<number | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
-  const stepRefs = useRef<(HTMLElement | null)[]>([]);
+  const refs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
-    api.scenarios(lab).then((s) => setScenario(s.find((x) => x.id === cfg.scenario) ?? s[0]), (e) => setError(String(e?.message ?? e)));
-  }, [lab, cfg.scenario]);
+    api.library(lab).then(setLibrary, (e) => setError(String(e?.message ?? e)));
+  }, [lab]);
+  const ids: CaptureIds | null = useMemo(() => (library ? cfg.pick(library.captures) : null), [library, cfg]);
+  const capturedWith = library?.manifest.model ? `${library.manifest.model} (${library.manifest.provider})` : "a live model";
+  const capturedOn = library?.manifest.captured ?? "";
 
-  const vulnerable = scenario?.variants.find((v) => !v.is_fix)?.id ?? "vulnerable";
-  const fixedVariant = scenario?.variants.find((v) => v.is_fix)?.id ?? "fixed";
-  const incident = useMemo(() => Object.fromEntries((scenario?.conditions ?? []).map((c) => [c.id, c.incident])), [scenario]);
-
-  // How far the visitor has got: each step unlocks the next.
-  const reached =
-    state.reports ? 6 : state.fixed ? 5 : state.replay ? 4 : state.buggy ? 3 : 1;
-
-  const go = async (step: number, action: () => Promise<Partial<State>>) => {
-    setBusy(step);
+  const go = async (key: string, scrollTo: string, action: () => Promise<Partial<State>>) => {
+    setBusy(key);
     setError(undefined);
     try {
       const patch = await action();
       setState((s) => ({ ...s, ...patch }));
-      setTimeout(() => stepRefs.current[step]?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+      setTimeout(() => refs.current[scrollTo]?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
     }
   };
+  const rerun = async (captureId: string, title: string) => {
+    const r = await api.reexecute(lab, captureId, title);
+    return api.execution(lab, r.execution.id);
+  };
 
+  const reset = { buggy: undefined, replay: undefined, replayDiff: undefined, fixed: undefined, compareDiff: undefined, reports: undefined };
   const runAgent = () =>
-    go(1, async () => {
-      const s = await api.record(lab, cfg.scenario, vulnerable, incident, `Guided demo: ${cfg.title} (buggy agent)`);
-      return { buggy: await api.execution(lab, s.id), replay: undefined, replayDiff: undefined, fixed: undefined, compareDiff: undefined, reports: undefined };
-    });
+    go("run", cfg.natural ? "natural" : "failure", async () =>
+      cfg.natural
+        ? { ...reset, natural: await rerun(ids!.natural!, `Guided demo: ${cfg.title} (workflow v1)`) }
+        : { ...reset, buggy: await rerun(ids!.buggy, `Guided demo: ${cfg.title} (buggy agent)`) },
+    );
+  const inject = () => go("inject", "failure", async () => ({ ...reset, buggy: await rerun(ids!.buggy, `Guided demo: ${cfg.title} (injected decision, v1)`) }));
   const replay = () =>
-    go(3, async () => {
+    go("replay", "replay", async () => {
       const r = await api.replay(lab, state.buggy!.id);
       return { replay: await api.execution(lab, r.execution.id), replayDiff: r.diff };
     });
   const testFix = () =>
-    go(4, async () => {
-      const s = await api.record(lab, cfg.scenario, fixedVariant, incident, `Guided demo: ${cfg.title} (fixed agent)`);
-      const [fixed, compareDiff] = await Promise.all([api.execution(lab, s.id), api.diff(lab, state.buggy!.id, s.id)]);
-      return { fixed, compareDiff };
+    go("fix", "fix", async () => {
+      const fixed = await rerun(ids!.fixed, `Guided demo: ${cfg.title} (corrected)`);
+      return { fixed, compareDiff: await api.diff(lab, state.buggy!.id, fixed.id) };
     });
-  const verify = () => go(5, async () => ({ reports: await api.runRegression(lab, state.buggy!.id) }));
+  const verify = () =>
+    go("verify", "verify", async () => {
+      const [before, after] = await Promise.all([
+        api.runRegressionFor(lab, ids!.buggy, ["vulnerable"]),
+        api.runRegressionFor(lab, ids!.fixed, ["fixed"]),
+      ]);
+      return { reports: [...before, ...after] };
+    });
 
   const story = useMemo(() => (state.buggy ? cfg.story(state.buggy) : []), [state.buggy, cfg]);
+  const reached = state.reports ? 7 : state.fixed ? 6 : state.replay ? 5 : state.buggy ? 4 : 1;
+  const ref = (k: string) => (el: HTMLElement | null) => {
+    refs.current[k] = el;
+  };
 
   return (
     <div className="animate-fade mx-auto max-w-4xl" data-testid="guided-demo" data-demo={demo}>
@@ -87,11 +99,7 @@ export function GuidedDemo({ demo }: { demo: DemoId }) {
               key={t}
               className={cx(
                 "flex items-center gap-2 rounded-full px-3 py-1 text-xs ring-1 ring-inset",
-                i + 1 < reached || (i + 1 === 6 && state.reports)
-                  ? "bg-emerald-400/10 text-emerald-200 ring-emerald-400/30"
-                  : i + 1 === reached
-                    ? "bg-violet-500/15 text-violet-100 ring-violet-400/40"
-                    : "text-ink-400 ring-white/10",
+                i + 1 < reached ? "bg-emerald-400/10 text-emerald-200 ring-emerald-400/30" : i + 1 === reached ? "bg-violet-500/15 text-violet-100 ring-violet-400/40" : "text-ink-400 ring-white/10",
               )}
             >
               <span className="font-mono">{i + 1}</span> {t}
@@ -105,18 +113,13 @@ export function GuidedDemo({ demo }: { demo: DemoId }) {
           <ErrorBox error={error} />
         </div>
       )}
+      {library && !ids && <div className="mb-6"><ErrorBox error="This server has no genuine captures for this demo." /></div>}
 
-      {/* 1 — Meet the agent */}
-      <Step n={1} title="Meet the agent" refCb={(el) => (stepRefs.current[0] = el)}>
+      <Step n={1} title="Meet the agent" refCb={ref("meet")}>
         <div className="space-y-3">
           {cfg.conversation.map((m) => (
             <div key={m.text} className={cx("flex", m.role === "agent" ? "justify-end" : "justify-start")}>
-              <div
-                className={cx(
-                  "max-w-[85%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed",
-                  m.role === "agent" ? "bg-violet-500/15 text-violet-50 ring-1 ring-violet-400/25" : m.role === "system" ? "bg-amber-400/10 text-amber-100 ring-1 ring-amber-400/25" : "bg-white/[0.06] text-ink-100 ring-1 ring-white/10",
-                )}
-              >
+              <div className={cx("max-w-[85%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed", m.role === "agent" ? "bg-violet-500/15 text-violet-50 ring-1 ring-violet-400/25" : m.role === "system" ? "bg-amber-400/10 text-amber-100 ring-1 ring-amber-400/25" : "bg-white/[0.06] text-ink-100 ring-1 ring-white/10")}>
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider opacity-70">{m.who}</div>
                 {m.text}
               </div>
@@ -136,95 +139,89 @@ export function GuidedDemo({ demo }: { demo: DemoId }) {
             </div>
           ))}
         </div>
-        <Cta onClick={runAgent} busy={busy === 1} disabled={!scenario} label={state.buggy ? "Run the agent again" : cfg.runCta} testId="run-agent" />
+        <div className="mt-5 rounded-xl bg-cyan-400/[0.06] px-4 py-3 text-sm leading-relaxed text-cyan-50 ring-1 ring-cyan-400/20" data-testid="what-is-real">
+          {cfg.realExplainer}
+        </div>
+        <Cta onClick={runAgent} busy={busy === "run"} disabled={!ids} label={state.buggy || state.natural ? "Run it again" : cfg.runCta} testId="run-agent" />
         <Honesty>
-          Scripted agent: the decisions come from a deterministic policy, not a live LLM, so the demo is reproducible and free. The run happens now, on this server, against simulated services.
+          The model's decisions come from a genuine live run of {capturedWith}{capturedOn ? ` recorded on ${capturedOn}` : ""}. This public server makes no paid model calls. Clicking re-executes that run now, for real: the same agent code, real HTTP requests and real SQL writes on this server, with Claude's recorded decisions.
         </Honesty>
       </Step>
 
-      {/* 2 — Watch the failure */}
+      {cfg.natural && state.natural && (
+        <Step n="2a" title={cfg.natural.title} tone="info" refCb={ref("natural")}>
+          <div className="mb-3"><ExecTypeBadges e={state.natural} /></div>
+          <p className="text-[15px] leading-relaxed text-ink-100" data-testid="natural-summary">{cfg.natural.summary(state.natural)}</p>
+          <ol className="mt-4 space-y-1.5">{cfg.story(state.natural).map((l, i) => <StoryItem key={l.eventId} line={l} n={i + 1} compact />)}</ol>
+          <p className="mt-5 rounded-xl bg-amber-400/[0.07] px-4 py-3 text-[15px] leading-relaxed text-amber-50 ring-1 ring-amber-400/20">{cfg.natural.explain}</p>
+          <Cta onClick={inject} busy={busy === "inject"} label={state.buggy ? "Inject it again" : cfg.natural.injectCta} testId="inject" />
+          <Honesty>{cfg.natural.injectExplain}</Honesty>
+        </Step>
+      )}
+
       {state.buggy && (
-        <Step n={2} title="Watch the failure" tone="bad" refCb={(el) => (stepRefs.current[1] = el)}>
+        <Step n={cfg.natural ? "2b" : 2} title="Watch the failure" tone="bad" refCb={ref("failure")}>
+          <div className="mb-3"><ExecTypeBadges e={state.buggy} /></div>
           <p className="text-xl font-semibold text-rose-200" data-testid="failure-headline">{cfg.failureHeadline(state.buggy)}</p>
           <Facts facts={cfg.failureFacts(state.buggy)} />
-          <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-ink-400">What happened, step by step</h3>
+          <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-ink-400">What happened, and who did it</h3>
           <ol className="mt-3 space-y-2" data-testid="failure-story">
-            {story.filter((l) => l.key).map((l, i) => (
-              <StoryItem key={l.eventId} line={l} n={i + 1} />
-            ))}
+            {story.filter((l) => l.key).map((l, i) => <StoryItem key={l.eventId} line={l} n={i + 1} />)}
           </ol>
           <p className="mt-5 rounded-xl bg-rose-500/[0.07] px-4 py-3 text-[15px] leading-relaxed text-rose-100 ring-1 ring-rose-400/20">{cfg.failureExplain}</p>
           <SourceNote ex={state.buggy} lab={lab} />
         </Step>
       )}
 
-      {/* 3 — Investigate */}
       {state.buggy && (
-        <Step n={3} title="Investigate the failure" refCb={(el) => (stepRefs.current[2] = el)}>
-          <p className="text-[15px] leading-relaxed text-ink-200">
-            GhostReplay recorded every decision and tool call in order. Here is the full run in plain English. The highlighted lines are the ones that matter.
-          </p>
-          <ol className="mt-4 space-y-1.5">
-            {story.map((l, i) => (
-              <StoryItem key={l.eventId} line={l} n={i + 1} compact />
-            ))}
-          </ol>
-          <h3 className="mt-6 text-sm font-semibold text-white">Why the retry was unsafe</h3>
+        <Step n={3} title="Investigate the failure" refCb={ref("investigate")}>
+          <p className="text-[15px] leading-relaxed text-ink-200">Every model decision and tool call was recorded in order. Here is the full run in plain English, with who did each step.</p>
+          <ol className="mt-4 space-y-1.5" data-testid="full-story">{story.map((l, i) => <StoryItem key={l.eventId} line={l} n={i + 1} compact />)}</ol>
+          <h3 className="mt-6 text-sm font-semibold text-white">Why it was unsafe</h3>
           <p className="mt-1 text-[15px] leading-relaxed text-ink-200">{cfg.whyUnsafe}</p>
           <TechDetails ex={state.buggy} highlight={story.filter((l) => l.key && l.tone === "bad").map((l) => l.eventId)} />
-          <Cta onClick={replay} busy={busy === 3} label={state.replay ? "Replay again" : "Replay the Failure"} testId="replay" />
+          <Cta onClick={replay} busy={busy === "replay"} label={state.replay ? "Replay again" : "Replay the Failure"} testId="replay" />
         </Step>
       )}
 
-      {/* 4 — Replay safely */}
       {state.replay && state.buggy && (
-        <Step n={4} title="Replay safely" tone="info" refCb={(el) => (stepRefs.current[3] = el)}>
+        <Step n={4} title="Replay safely" tone="info" refCb={ref("replay")}>
+          <div className="mb-3"><ExecTypeBadges e={state.replay} /></div>
           <p className="text-[15px] leading-relaxed text-ink-200">
-            GhostReplay reuses recorded model and tool responses, so developers can reproduce the observed execution without calling the real {demo === "refund" ? "payment service" : "cloud API"} again.
+            GhostReplay ran the same agent code again, offline. Every model and tool response was served from the recording, so neither {state.buggy.provenance.model_provider === "scripted" ? "the model" : "Claude"} nor the {demo === "refund" ? "refund service or the database" : "lab"} was contacted.
           </p>
           <ReplayFacts replay={state.replay} diff={state.replayDiff} />
-          {state.replay.divergence && (
-            <p className="mt-4 rounded-xl bg-amber-400/10 px-4 py-3 text-sm text-amber-100 ring-1 ring-amber-400/25" role="status">
-              The replay diverged: {state.replay.divergence.message}
-            </p>
-          )}
-          <Honesty>Strict offline replay: tool handlers are replaced by stubs that throw if called, so nothing can reach a backend.</Honesty>
+          {state.replay.divergence && <p className="mt-4 rounded-xl bg-amber-400/10 px-4 py-3 text-sm text-amber-100 ring-1 ring-amber-400/25" role="status">The replay diverged: {state.replay.divergence.message}</p>}
+          <Honesty>Strict offline replay: no world is created, tool handlers are stubs that throw if reached, and network access is blocked on the replaying thread. A replay reproduces the recording; it is not a re-run of changed code.</Honesty>
           <DevLink href={href({ name: "replay", lab, id: state.buggy.id })}>Watch it stream in Replay Studio</DevLink>
-          <Cta onClick={testFix} busy={busy === 4} label={state.fixed ? "Run the fixed agent again" : "Test the Fix"} testId="test-fix" />
+          <Cta onClick={testFix} busy={busy === "fix"} label={state.fixed ? "Run the fix again" : "Test the Fix"} testId="test-fix" />
         </Step>
       )}
 
-      {/* 5 — Compare */}
       {state.fixed && state.buggy && (
-        <Step n={5} title="Compare the buggy and fixed agents" tone="good" refCb={(el) => (stepRefs.current[4] = el)}>
+        <Step n={5} title="Compare the buggy and fixed versions" tone="good" refCb={ref("fix")}>
+          <div className="mb-3"><ExecTypeBadges e={state.fixed} /></div>
           <h3 className="text-lg font-semibold text-white">{cfg.fixTitle}</h3>
           <p className="mt-1 text-[15px] leading-relaxed text-ink-200">{cfg.fixText}</p>
           <CompareTable rows={cfg.compare(state.buggy, state.fixed)} />
-          <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-ink-400">What the fixed agent did differently</h3>
-          <ol className="mt-3 space-y-2" data-testid="fixed-story">
-            {cfg.story(state.fixed).filter((l) => l.key).map((l, i) => (
-              <StoryItem key={l.eventId} line={l} n={i + 1} />
-            ))}
-          </ol>
+          <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-ink-400">What the fixed version did differently</h3>
+          <ol className="mt-3 space-y-2" data-testid="fixed-story">{cfg.story(state.fixed).filter((l) => l.key).map((l, i) => <StoryItem key={l.eventId} line={l} n={i + 1} />)}</ol>
           {state.compareDiff?.first_divergence && (
             <p className="mt-4 text-[15px] text-ink-200">
               <span className="font-semibold text-white">Where the two runs first differ: </span>
-              <span className="font-mono text-cyan-200">{state.compareDiff.first_divergence.summary}</span>
-              {" "}({state.compareDiff.entries.length} structural difference{state.compareDiff.entries.length === 1 ? "" : "s"} in total).
+              <span className="font-mono text-cyan-200">{state.compareDiff.first_divergence.summary}</span> ({state.compareDiff.entries.length} structural difference{state.compareDiff.entries.length === 1 ? "" : "s"}).
             </p>
           )}
-          <Honesty>Re-executed simulation: the fixed agent ran from scratch against fresh simulated services with the same failure condition. This is not a replay, because the code changed.</Honesty>
           <DevLink href={href({ name: "diff", lab, a: state.buggy.id, b: state.fixed.id })}>Open the full structural diff</DevLink>
-          <Cta onClick={verify} busy={busy === 5} label={state.reports ? "Run the regression tests again" : "Verify the Fix"} testId="verify" />
+          <Cta onClick={verify} busy={busy === "verify"} label={state.reports ? "Run the regression tests again" : "Verify the Fix"} testId="verify" />
         </Step>
       )}
 
-      {/* 6 — Verify */}
       {state.reports && state.buggy && (
-        <Step n={6} title="Regression verification" tone="good" refCb={(el) => (stepRefs.current[5] = el)}>
-          <Verification reports={state.reports} vulnerable={vulnerable} fixed={fixedVariant} headline={cfg.headlineInvariant} before={cfg.verifyBefore} after={cfg.verifyAfter} />
+        <Step n={6} title="Regression verification" tone="good" refCb={ref("verify")}>
+          <Verification reports={state.reports} headline={cfg.headlineInvariant} before={cfg.verifyBefore} after={cfg.verifyAfter} />
           <p className="mt-5 text-[15px] leading-relaxed text-ink-200">
-            GhostReplay converts failures into repeatable tests so developers can prevent the same bug from returning. Both tests just ran on this server: the same failure scenario, once per agent.
+            Each test just re-executed its version for real on this server, under the same failure, and checked the safety invariants. GhostReplay turns failures into repeatable tests, so the same bug can't quietly come back.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Button href={href({ name: "execution", lab, id: state.buggy.id })}>Explore Full Execution</Button>
@@ -239,16 +236,23 @@ export function GuidedDemo({ demo }: { demo: DemoId }) {
   );
 }
 
-// -- building blocks --------------------------------------------------------------------------
+// -- building blocks ---------------------------------------------------------------------------
 
-function Step({ n, title, children, tone = "neutral", refCb }: { n: number; title: string; children: ReactNode; tone?: "neutral" | "bad" | "good" | "info"; refCb: (el: HTMLElement | null) => void }) {
+const ACTOR: Record<Actor, { label: string; cls: string }> = {
+  model: { label: "Model decision", cls: "bg-violet-500/20 text-violet-100" },
+  app: { label: "Application code", cls: "bg-sky-500/20 text-sky-100" },
+  service: { label: "Service", cls: "bg-white/10 text-ink-100" },
+  fault: { label: "Injected fault", cls: "bg-amber-400/20 text-amber-100" },
+};
+
+function Step({ n, title, children, tone = "neutral", refCb }: { n: number | string; title: string; children: ReactNode; tone?: "neutral" | "bad" | "good" | "info"; refCb: (el: HTMLElement | null) => void }) {
   const ring = { neutral: "ring-white/10", bad: "ring-rose-400/25", good: "ring-emerald-400/25", info: "ring-cyan-400/25" }[tone];
   const dot = { neutral: "bg-violet-500/80", bad: "bg-rose-500/80", good: "bg-emerald-500/80", info: "bg-cyan-500/80" }[tone];
   return (
-    <section ref={refCb} className={cx("animate-fade mb-6 scroll-mt-24 rounded-2xl bg-ink-900/80 p-5 ring-1 sm:p-7", ring)} data-testid={`step-${n}`} aria-labelledby={`step-${n}-title`}>
+    <section ref={refCb} className={cx("animate-fade mb-6 scroll-mt-24 rounded-2xl bg-ink-900/80 p-5 ring-1 sm:p-7", ring)} data-testid={`step-${n}`}>
       <div className="mb-4 flex items-center gap-3">
         <span className={cx("grid size-7 place-items-center rounded-full font-mono text-sm font-semibold text-white", dot)}>{n}</span>
-        <h2 id={`step-${n}-title`} className="text-xl font-semibold text-white">{title}</h2>
+        <h2 className="text-xl font-semibold text-white">{title}</h2>
       </div>
       {children}
     </section>
@@ -258,31 +262,19 @@ function Step({ n, title, children, tone = "neutral", refCb }: { n: number; titl
 function Cta({ onClick, busy, disabled, label, testId }: { onClick: () => void; busy: boolean; disabled?: boolean; label: string; testId: string }) {
   return (
     <div className="mt-6">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={busy || disabled}
-        data-testid={testId}
-        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-violet-500 to-violet-600 px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_0_0_1px_rgb(167_139_250/0.5),0_10px_30px_-10px_rgb(139_92_246/0.8)] transition-colors hover:from-violet-400 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
-      >
+      <button type="button" onClick={onClick} disabled={busy || disabled} data-testid={testId} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-violet-500 to-violet-600 px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_0_0_1px_rgb(167_139_250/0.5),0_10px_30px_-10px_rgb(139_92_246/0.8)] transition-colors hover:from-violet-400 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50">
         {busy ? <Spinner /> : null}
-        {busy ? "Running…" : `${label} →`}
+        {busy ? "Running for real…" : `${label} →`}
       </button>
     </div>
   );
 }
 
-function Honesty({ children }: { children: ReactNode }) {
-  return <p className="mt-4 text-xs leading-relaxed text-ink-400">{children}</p>;
-}
+const Honesty = ({ children }: { children: ReactNode }) => <p className="mt-4 text-xs leading-relaxed text-ink-400">{children}</p>;
 
-function DevLink({ href: to, children }: { href: string; children: ReactNode }) {
-  return (
-    <a href={to} className="mt-3 inline-block text-sm text-cyan-300 underline-offset-4 hover:underline">
-      Developer mode: {children} →
-    </a>
-  );
-}
+const DevLink = ({ href: to, children }: { href: string; children: ReactNode }) => (
+  <a href={to} className="mt-3 inline-block text-sm text-cyan-300 underline-offset-4 hover:underline">Developer mode: {children} →</a>
+);
 
 function Facts({ facts }: { facts: Fact[] }) {
   const color = { red: "text-rose-300", green: "text-emerald-300", amber: "text-amber-300", cyan: "text-cyan-300" };
@@ -299,17 +291,14 @@ function Facts({ facts }: { facts: Fact[] }) {
 }
 
 function StoryItem({ line, n, compact }: { line: StoryLine; n: number; compact?: boolean }) {
-  const tone = {
-    bad: "bg-rose-500/[0.08] text-rose-100 ring-rose-400/25",
-    warn: "bg-amber-400/[0.08] text-amber-100 ring-amber-400/25",
-    good: "bg-emerald-500/[0.08] text-emerald-100 ring-emerald-400/25",
-    neutral: "bg-white/[0.02] text-ink-200 ring-white/10",
-  }[line.tone];
+  const tone = { bad: "bg-rose-500/[0.08] text-rose-100 ring-rose-400/25", warn: "bg-amber-400/[0.08] text-amber-100 ring-amber-400/25", good: "bg-emerald-500/[0.08] text-emerald-100 ring-emerald-400/25", neutral: "bg-white/[0.02] text-ink-200 ring-white/10" }[line.tone];
+  const actor = ACTOR[line.actor];
   return (
-    <li className={cx("flex gap-3 rounded-xl px-4 ring-1", compact ? "py-2 text-sm" : "py-3 text-[15px]", tone, compact && !line.key && "opacity-80")}>
+    <li className={cx("flex flex-wrap items-start gap-x-3 gap-y-1 rounded-xl px-4 ring-1", compact ? "py-2 text-sm" : "py-3 text-[15px]", tone, compact && !line.key && "opacity-80")} data-actor={line.actor}>
       <span className="font-mono text-xs leading-6 opacity-60">{n}.</span>
-      <span className="leading-relaxed">{line.text}</span>
-      <span className="ml-auto shrink-0 font-mono text-[10.5px] leading-6 opacity-50">seq {line.seq}</span>
+      <span className={cx("mt-0.5 rounded px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider", actor.cls)}>{actor.label}</span>
+      <span className="min-w-0 flex-1 leading-relaxed">{line.text}</span>
+      <span className="shrink-0 font-mono text-[10.5px] leading-6 opacity-50">seq {line.seq}</span>
     </li>
   );
 }
@@ -320,16 +309,12 @@ function TechDetails({ ex, highlight }: { ex: Execution; highlight: string[] }) 
   return (
     <div className="mt-6">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="text-sm font-medium text-cyan-300 hover:text-cyan-200" data-testid="tech-details">
-        {open ? "▾ Hide technical details" : "▸ Show technical details (model decisions, tool arguments, responses, state, errors, timestamps)"}
+        {open ? "▾ Hide technical details" : "▸ Show technical details (model inputs and responses, tool arguments, HTTP results, state changes, errors, timing)"}
       </button>
       {open && (
         <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="rounded-xl ring-1 ring-white/10">
-            <Timeline execution={ex} selected={selected?.event_id} onSelect={setSelected} highlight={highlight} compact />
-          </div>
-          <div className="rounded-xl ring-1 ring-white/10">
-            {selected ? <Inspector event={selected} /> : <p className="p-4 text-sm text-ink-300">Select an event to inspect its request, response, state change and timing.</p>}
-          </div>
+          <div className="rounded-xl ring-1 ring-white/10"><Timeline execution={ex} selected={selected?.event_id} onSelect={setSelected} highlight={highlight} compact /></div>
+          <div className="rounded-xl ring-1 ring-white/10">{selected ? <Inspector event={selected} /> : <p className="p-4 text-sm text-ink-300">Select an event to inspect its request, response, state change and timing.</p>}</div>
         </div>
       )}
     </div>
@@ -337,19 +322,19 @@ function TechDetails({ ex, highlight }: { ex: Execution; highlight: string[] }) 
 }
 
 function ReplayFacts({ replay, diff }: { replay: Execution; diff?: TraceDiff }) {
-  const c = countBySource(replay);
+  const ev = replayEvidence(replay);
   const facts: Fact[] = [
-    { label: "Recorded responses reused", value: String(c.recorded), tone: "cyan" },
-    { label: "External tool executions", value: String(c.toolsExecuted), tone: c.toolsExecuted === 0 ? "green" : "red" },
-    { label: "Divergence", value: replay.divergence ? "Yes" : "None", tone: replay.divergence ? "amber" : "green" },
-    { label: "Replay result", value: diff?.identical ? "Identical" : replay.status === "completed" ? "Different" : replay.status, tone: diff?.identical ? "green" : "amber" },
+    { label: "Model calls avoided", value: String(ev.modelAvoided), tone: "cyan" },
+    { label: "Tool calls avoided", value: String(ev.toolsAvoided), tone: "cyan" },
+    { label: "Matched events", value: String(ev.matched), tone: "cyan" },
+    { label: "Executed during replay", value: String(ev.executed), tone: ev.executed === 0 ? "green" : "red" },
   ];
   return (
     <div data-testid="replay-facts">
       <Facts facts={facts} />
       <p className="mt-3 text-sm text-ink-300">
-        {c.recorded} of {c.total} model and tool calls were answered from the recording; {c.live} were executed. The replayed run reaches the same verdicts:{" "}
-        {replay.invariants.filter((i) => i.status === "failed").map((i) => i.id).join(", ") || "no invariant failed"}.
+        Divergence: <b className="text-white">{replay.divergence ? "yes" : "none"}</b> · status: <b className="text-white">{replay.status}</b> · compared with the original:{" "}
+        <b className="text-white">{diff?.identical ? "identical" : "different"}</b> · same verdicts: {replay.invariants.filter((i) => i.status === "failed").map((i) => i.id).join(", ") || "no invariant failed"}.
       </p>
     </div>
   );
@@ -362,8 +347,8 @@ function CompareTable({ rows }: { rows: CompareRow[] }) {
         <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wider text-ink-400">
           <tr>
             <th className="px-4 py-2.5 font-medium">Metric</th>
-            <th className="px-4 py-2.5 font-medium">Buggy agent</th>
-            <th className="px-4 py-2.5 font-medium">Fixed agent</th>
+            <th className="px-4 py-2.5 font-medium">Buggy version</th>
+            <th className="px-4 py-2.5 font-medium">Fixed version</th>
           </tr>
         </thead>
         <tbody>
@@ -380,35 +365,29 @@ function CompareTable({ rows }: { rows: CompareRow[] }) {
   );
 }
 
-function Verification({ reports, vulnerable, fixed, headline, before, after }: { reports: RegressionReport[]; vulnerable: string; fixed: string; headline: string; before: string; after: string }) {
-  const b = reportFor(reports, vulnerable);
-  const a = reportFor(reports, fixed);
-  const card = (r: RegressionReport | undefined, label: string, text: string) => {
+function Verification({ reports, headline, before, after }: { reports: RegressionReport[]; headline: string; before: string; after: string }) {
+  const b = reports.find((r) => r.variant === "vulnerable");
+  const a = reports.find((r) => r.variant === "fixed");
+  const card = (r: RegressionReport | undefined, label: "Before" | "After", text: string) => {
     if (!r) return <div className="rounded-xl p-4 ring-1 ring-white/10">No report for {label}.</div>;
     const inv = r.invariants.find((i) => i.id === headline);
-    const ok = r.passed;
     return (
-      <div className={cx("rounded-xl p-5 ring-1", ok ? "bg-emerald-500/[0.07] ring-emerald-400/30" : "bg-rose-500/[0.07] ring-rose-400/30")} data-testid={`verify-${label.toLowerCase()}`} data-passed={ok}>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">{label} · {r.variant} agent</div>
-        <div className={cx("mt-1 text-2xl font-bold", ok ? "text-emerald-300" : "text-rose-300")}>{ok ? "PASSED" : "FAILED"}</div>
-        <p className="mt-2 text-[15px] text-ink-100">{ok === (label === "After") ? text : "Unexpected result: see the report below."}</p>
+      <div className={cx("rounded-xl p-5 ring-1", r.passed ? "bg-emerald-500/[0.07] ring-emerald-400/30" : "bg-rose-500/[0.07] ring-rose-400/30")} data-testid={`verify-${label.toLowerCase()}`} data-passed={r.passed}>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">{label} · {r.variant} version</div>
+        <div className={cx("mt-1 text-2xl font-bold", r.passed ? "text-emerald-300" : "text-rose-300")}>{r.passed ? "PASSED" : "FAILED"}</div>
+        <p className="mt-2 text-[15px] text-ink-100">{r.outcome_matches_expectation ? text : "Unexpected result: see the report."}</p>
         {inv && <p className="mt-2 font-mono text-xs text-ink-300">{inv.id}: {inv.message}</p>}
-        <p className="mt-1 text-xs text-ink-400">expected {r.expect.toUpperCase()} · {r.outcome_matches_expectation ? "as expected" : "NOT as expected"} · execution {r.execution_id}</p>
+        <p className="mt-1 text-xs text-ink-400">expected {r.expect.toUpperCase()} · {r.outcome_matches_expectation ? "as expected" : "NOT as expected"} · re-executed as {r.execution_id}</p>
       </div>
     );
   };
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {card(b, "Before", before)}
-      {card(a, "After", after)}
-    </div>
-  );
+  return <div className="grid gap-3 sm:grid-cols-2">{card(b, "Before", before)}{card(a, "After", after)}</div>;
 }
 
 function SourceNote({ ex, lab }: { ex: Execution; lab: "support" | "devops" }) {
   return (
     <p className="mt-4 text-xs text-ink-400">
-      Recorded execution <a className="font-mono text-cyan-300 hover:underline" href={href({ name: "execution", lab, id: ex.id })}>{ex.id}</a> · {ex.events.length} events · {LABS[lab].name} · model: {ex.provenance.label}
+      Execution <a className="font-mono text-cyan-300 hover:underline" href={href({ name: "execution", lab, id: ex.id })}>{ex.id}</a> · {ex.events.length} events · re-executed from capture {ex.reference_execution_id} · decisions: {ex.provenance.label} · tools: {ex.provenance.tool_backends}
     </p>
   );
 }

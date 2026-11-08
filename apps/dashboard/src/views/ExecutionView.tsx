@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { api, LABS, type LabId } from "../api/client";
 import { Inspector, InvariantList, Timeline } from "../components/execution";
+import { ExecTypeBadges } from "../components/ExecTypeBadges";
 import { Badge, Button, Card, ErrorBox, JsonView, Loading, ModeBadge, SectionHeader, Stat, StatusBadge } from "../components/ui";
 import { ms } from "../lib/format";
 import { href } from "../lib/router";
@@ -25,7 +26,7 @@ export function ExecutionView({ lab, id, focus }: { lab: LabId; id: string; focu
     <div className="animate-fade">
       <SectionHeader
         eyebrow={`${LABS[lab].name} · ${ex.scenario}`}
-        title={<span className="flex flex-wrap items-center gap-3">{ex.title || "Execution"} <ModeBadge mode={ex.mode} /> <StatusBadge status={ex.status} /></span>}
+        title={<span className="flex flex-wrap items-center gap-3">{ex.title || "Execution"} <ModeBadge mode={ex.mode} /> <StatusBadge status={ex.status} /> <ExecTypeBadges e={ex} /></span>}
         actions={
           <>
             {ex.mode === "record" && <Button variant="primary" href={href({ name: "replay", lab, id: ex.id })}>▶ Replay offline</Button>}

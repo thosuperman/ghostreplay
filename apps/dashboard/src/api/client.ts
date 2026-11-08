@@ -4,6 +4,7 @@ import type {
   ExecutionSummary,
   ExportedCase,
   ImportResult,
+  Library,
   FaultKind,
   FaultSpec,
   LabInfo,
@@ -127,6 +128,11 @@ export const api = {
     post<RegressionReport[]>(lab, "/api/regression/run", { execution_id: executionId }),
   exportCase: (lab: LabId, executionId: string, variant: string) =>
     post<ExportedCase>(lab, "/api/regression/export", { execution_id: executionId, variant }),
+  library: (lab: LabId) => request<Library>(lab, "/api/library"),
+  reexecute: (lab: LabId, executionId: string, title = "") =>
+    post<RunResult>(lab, "/api/runs/reexecute", { execution_id: executionId, title }),
+  runRegressionFor: (lab: LabId, executionId: string, variants: string[]) =>
+    post<RegressionReport[]>(lab, "/api/regression/run", { execution_id: executionId, variants }),
   imported: (lab: LabId) => request<ExecutionSummary[]>(lab, "/api/executions?imported=true&limit=100"),
   importTrace: (lab: LabId, body: string) =>
     request<ImportResult>(lab, "/api/traces/import", { method: "POST", headers: { "Content-Type": "application/json" }, body }),

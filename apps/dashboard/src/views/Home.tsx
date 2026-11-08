@@ -16,7 +16,7 @@ const SCENARIOS = [
     demo: "refund" as const,
     tag: "Support Agent",
     title: "The $129 Refund That Became $258",
-    text: "A customer requested a $129 refund. An API timeout caused the agent to retry, accidentally refunding twice. See how GhostReplay detects and prevents the mistake.",
+    text: "A customer requested a $129 refund. Claude asked for one refund; the refund service committed it but the response timed out, and the app's retry refunded twice. See how GhostReplay detects and prevents the mistake.",
     cta: "Try Refund Demo",
     accent: "from-rose-500/[0.16] border-rose-400/30 hover:border-rose-300/60",
     before: "$258 refunded",
@@ -26,11 +26,11 @@ const SCENARIOS = [
     demo: "devops" as const,
     tag: "DevOps Agent",
     title: "The AI Agent That Tried to Delete Healthy Servers",
-    text: "An AI DevOps agent trusted stale monitoring data and attempted to terminate healthy instances. See how GhostReplay reveals and tests the unsafe behavior.",
+    text: "An auto-remediation workflow trusts stale monitoring data and may terminate healthy instances. In our live run, Claude refused. GhostReplay then tests the workflow itself: what happens if the model does follow the runbook?",
     cta: "Try DevOps Demo",
     accent: "from-amber-500/[0.14] border-amber-400/30 hover:border-amber-300/60",
-    before: "3 healthy servers terminated",
-    after: "0 terminated · human approval requested",
+    before: "v1 + injected decision: 3 healthy servers shut down",
+    after: "v2: blocked · human approval requested",
   },
 ];
 
@@ -71,7 +71,7 @@ export function Home() {
 
       <section className="mx-auto mt-14 max-w-[1100px]">
         <h2 className="text-2xl font-semibold tracking-tight text-white">See a real agent fail, then watch the fix hold</h2>
-        <p className="mt-2 max-w-2xl text-ink-300">Two real AI agents, two expensive mistakes. Every number you'll see comes from executions run live on this server against simulated services. No sign-up and no API keys.</p>
+        <p className="mt-2 max-w-2xl text-ink-300">Two AI agents, two expensive mistakes. The model's decisions come from genuine runs of Claude; every refund, database write, health check and termination you'll see is executed for real on this server, against isolated test services. No sign-up and no API keys.</p>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {SCENARIOS.map((s) => (
             <a key={s.demo} href={href({ name: "demo", demo: s.demo })} className={`group block rounded-2xl border bg-gradient-to-br via-ink-900 to-ink-900 p-6 transition-all hover:-translate-y-0.5 ${s.accent}`} data-testid={`scenario-${s.demo}`}>
@@ -145,7 +145,7 @@ export function Home() {
       </section>
 
       <footer className="mx-auto mt-16 max-w-[1100px] border-t hairline pt-6 text-xs leading-relaxed text-ink-400">
-        Demo agents use scripted decision policies (labelled everywhere) so every run is reproducible and free; tools are in-memory simulations: no real payment, refund or cloud operation ever happens. Open source under the MIT license ·{" "}
+        Guided demos re-execute genuine recorded Claude runs (this public server makes no paid model calls); tools run for real against isolated services on this server (SQLite, a local refund service, a local instance lab) with fictional test data. No real payment, refund or cloud operation ever happens, and every execution is labelled with what was live, recorded, scripted or injected. Open source under the MIT license ·{" "}
         <a className="text-cyan-300 hover:underline" href="https://github.com/thosuperman/ghost-replay">GitHub</a>
       </footer>
     </div>

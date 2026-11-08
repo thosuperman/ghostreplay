@@ -216,6 +216,12 @@ class Session:
 
         if serve_recorded and expected is not None and fault is None:
             self.clock.advance(expected.duration_ms)
+            if expected.fault is not None:
+                # The recorded response was itself produced by an injected fault (for example a
+                # replaced model decision). Serving it again must keep that label, so it is never
+                # presented as a genuine model or tool output.
+                applied = expected.fault.model_copy(deep=True)
+                source = EventSource.INJECTED
         duration = self.clock.monotonic_ms() - t0
 
         state_after: Any = None

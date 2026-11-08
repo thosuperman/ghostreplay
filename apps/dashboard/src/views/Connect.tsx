@@ -17,12 +17,14 @@ const STEPS = [
 ];
 
 const LABELS = [
-  ["Scripted agent", "Decisions come from a deterministic policy (the bundled demos), not an LLM."],
+  ["Scripted demo", "Decisions come from a deterministic policy (developer-mode recordings and tests), not an LLM."],
+  ["Genuine capture", "A run recorded with a live model against real local services, shipped read-only."],
   ["Live model call", "A real request to a model provider, made while recording. Opt-in only."],
   ["Recorded model response", "A model answer served from a recording during replay. No API call is made."],
   ["Mocked tool response", "A tool result served from the recording instead of executing the tool."],
   ["Strict replay", "The same agent code against the recording. Stops at the first divergence."],
-  ["Mutated re-execution", "Faults injected, then the rest re-executed against your simulated services (branch mode)."],
+  ["Controlled fault injection", "A labelled fault (a timeout, stale data, a replaced model decision) injected on purpose."],
+  ["Re-execution / corrected re-execution", "Tools, HTTP and SQL run again for real; model decisions are served from the recording (branch mode)."],
 ];
 
 export function Connect() {

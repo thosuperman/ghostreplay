@@ -174,13 +174,11 @@ export function App() {
           )}
 
           <div className="ml-auto hidden items-center gap-2 xl:flex">
-            <Badge tone="cyan" title="All tools are in-memory simulations; replay blocks network access.">offline · simulated backends</Badge>
+            <Badge tone="cyan" title="Tools make real HTTP requests and SQL writes to services on this server (SQLite, refund service, instance lab). Nothing reaches external systems; replay blocks the network.">real local services · no external calls</Badge>
             {liveModel ? (
-              <Badge tone="violet" title={`Scripted models by default; live AI (${liveModel.provider} ${liveModel.model}) can be chosen when recording.`}>
-                scripted · live AI available
-              </Badge>
+              <Badge tone="violet" title={`Live AI (${liveModel.provider} ${liveModel.model}) can be chosen when recording.`}>live AI available</Badge>
             ) : (
-              <Badge tone="amber" title="Decisions come from deterministic scripted models, not a live LLM.">scripted models</Badge>
+              <Badge tone="violet" title="Guided demos re-execute genuine runs recorded with a live model; this server makes no paid model calls. Developer-mode recordings use a labelled scripted model.">recorded Claude runs · scripted demo</Badge>
             )}
           </div>
         </div>

@@ -1,59 +1,62 @@
 import { expect, test } from "./fixtures";
 
-test("guided refund demo: failure, offline replay, fix and regression from real runs", async ({ page }) => {
+test("guided refund demo: real re-execution, offline replay, fix and regression", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("cta-watch-fail").click();
   await expect(page).toHaveURL(/#\/demo\/refund$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("The Double Refund Incident");
+  await expect(page.getByTestId("what-is-real")).toContainText("SQLite");
 
   await page.getByTestId("run-agent").click();
   await expect(page.getByTestId("failure-headline")).toHaveText("The customer was refunded $258.00 instead of $129.00.");
-  const facts = page.getByTestId("step-2").getByTestId("facts");
-  await expect(facts).toContainText("$129.00");
-  await expect(facts).toContainText("$258.00");
-  await expect(facts).toContainText("FAIL");
-  await expect(page.getByTestId("failure-story")).toContainText("timed out");
+  const failure = page.getByTestId("step-2");
+  await expect(failure.getByTestId("exec-type")).toContainText("Re-execution · recorded decisions");
+  await expect(failure.getByTestId("exec-type")).toContainText("Controlled fault");
+  await expect(failure.getByTestId("facts")).toContainText("$258.00");
+  // Who did what: the model asked for the refund, the application retried.
+  await expect(page.locator('[data-testid="full-story"] [data-actor="model"]').first()).toContainText("decided to call");
+  await expect(page.getByTestId("failure-story")).toContainText("retry policy (not the model)");
 
-  // The plain-English story matches the recorded events: every line links to a real seq.
   await page.getByTestId("tech-details").click();
   await expect(page.getByText("payments.create_refund").first()).toBeVisible();
 
   await page.getByTestId("replay").click();
   const replay = page.getByTestId("replay-facts");
-  await expect(replay).toContainText("External tool executions");
-  await expect(replay.getByText("Identical")).toBeVisible();
-  await expect(replay).toContainText("0 were executed");
+  await expect(replay).toContainText("Model calls avoided");
+  await expect(replay.locator("dd").nth(3)).toHaveText("0"); // executed during replay
+  await expect(replay).toContainText("identical");
 
   await page.getByTestId("test-fix").click();
   const table = page.getByTestId("compare-table");
-  await expect(table.getByRole("row", { name: /Actually refunded/ })).toContainText("$258.00");
-  await expect(table.getByRole("row", { name: /Actually refunded/ })).toContainText("$129.00");
-  await expect(table.getByRole("row", { name: /Duplicate refund/ })).toContainText("Yes");
-  await expect(page.getByTestId("fixed-story")).toContainText("Recovered the committed refund");
+  await expect(table.getByRole("row", { name: /Refunded \(SQL ledger\)/ })).toContainText("$258.00");
+  await expect(table.getByRole("row", { name: /Refunded \(SQL ledger\)/ })).toContainText("$129.00");
+  await expect(page.getByTestId("step-5").getByTestId("exec-type")).toContainText("Corrected re-execution");
+  await expect(page.getByTestId("fixed-story")).toContainText("did not refund again");
 
   await page.getByTestId("verify").click();
   await expect(page.getByTestId("verify-before")).toHaveAttribute("data-passed", "false");
   await expect(page.getByTestId("verify-after")).toHaveAttribute("data-passed", "true");
   await expect(page.getByTestId("verify-after")).toContainText("as expected");
 
-  // Guided → developer mode keeps the execution context.
   await page.getByRole("link", { name: "Explore Full Execution" }).click();
-  await expect(page).toHaveURL(/#\/support\/executions\/rec_/);
+  await expect(page).toHaveURL(/#\/support\/executions\/brn_/);
   await expect(page.getByText("payments.create_refund").first()).toBeVisible();
 });
 
-test("guided DevOps demo: the fixed agent verifies health and asks for approval", async ({ page }) => {
-  await page.goto("/demo/devops"); // pretty path served by the proxy
+test("guided DevOps demo: Claude declined, the injected decision fails v1 and is blocked by v2", async ({ page }) => {
+  await page.goto("/demo/devops");
   await expect(page).toHaveURL(/#\/demo\/devops$/);
   await page.getByTestId("run-agent").click();
+  await expect(page.getByTestId("natural-summary")).toContainText("declined");
+  await page.getByTestId("inject").click();
   await expect(page.getByTestId("failure-headline")).toContainText("terminated 3 healthy servers");
+  await expect(page.getByTestId("failure-story")).toContainText("Injected model decision");
   await page.getByTestId("replay").click();
-  await expect(page.getByTestId("replay-facts").getByText("Identical")).toBeVisible();
+  await expect(page.getByTestId("replay-facts")).toContainText("identical");
   await page.getByTestId("test-fix").click();
   const table = page.getByTestId("compare-table");
-  await expect(table.getByRole("row", { name: /Human approval requested/ })).toContainText("Yes");
   await expect(table.getByRole("row", { name: /^Servers terminated/ })).toContainText("0");
-  await expect(page.getByTestId("fixed-story")).toContainText("waiting for human approval");
+  await expect(table.getByRole("row", { name: /Destructive call blocked/ })).toContainText("Yes");
   await page.getByTestId("verify").click();
   await expect(page.getByTestId("verify-after")).toHaveAttribute("data-passed", "true");
   await expect(page.getByTestId("verify-before")).toHaveAttribute("data-passed", "false");

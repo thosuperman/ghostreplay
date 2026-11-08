@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api, LABS, type LabId } from "../api/client";
 import type { ExecutionMode, ModelChoice } from "../api/types";
+import { ExecTypeBadges } from "../components/ExecTypeBadges";
 import { verdictOf } from "../components/execution";
 import { Badge, Button, Card, cx, Empty, ErrorBox, Loading, ModeBadge, SectionHeader, Select, StatusBadge, Verdict } from "../components/ui";
 import { ago, ms } from "../lib/format";
@@ -11,6 +12,8 @@ export function Explorer({ lab }: { lab: LabId }) {
   const list = useAsync(() => api.executions(lab), [lab]);
   const scenarios = useAsync(() => api.scenarios(lab), [lab]);
   const info = useAsync(() => api.info(lab), [lab]);
+  const library = useAsync(() => api.library(lab), [lab]);
+  const libraryIds = new Set((library.data?.captures ?? []).map((c) => c.id));
   const [model, setModel] = useState<ModelChoice>("scripted");
   const live = info.data?.live_model ?? null;
   const [mode, setMode] = useState<"all" | ExecutionMode>("all");
@@ -150,7 +153,7 @@ export function Explorer({ lab }: { lab: LabId }) {
                     <div className="truncate text-ink-100">{r.title || "Untitled run"}</div>
                     <div className="font-mono text-[10.5px] text-ink-400">{r.id}{r.injected_faults > 0 && <span className="ml-2 text-fuchsia-300">⚡{r.injected_faults} fault</span>}</div>
                   </td>
-                  <td className="px-4 py-2.5"><div className="flex items-center gap-1.5"><ModeBadge mode={r.mode} />{r.status !== "completed" && <StatusBadge status={r.status} />}</div></td>
+                  <td className="px-4 py-2.5"><div className="flex items-center gap-1.5"><ModeBadge mode={r.mode} />{r.status !== "completed" && <StatusBadge status={r.status} />}<ExecTypeBadges e={r} library={libraryIds.has(r.id)} /></div></td>
                   <td className="px-4 py-2.5"><Badge>{r.variant}</Badge></td>
                   <td className="px-4 py-2.5 text-right font-mono text-ink-200">{r.tool_calls}</td>
                   <td className={cx("px-4 py-2.5 text-right font-mono", r.errors ? "text-amber-300" : "text-ink-400")}>{r.errors}</td>

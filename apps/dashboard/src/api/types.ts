@@ -364,3 +364,17 @@ export interface ImportResult {
   replayable_here: boolean;
   note: string;
 }
+
+export interface LibraryCapture extends ExecutionSummary {
+  provider: string;
+  model: string;
+  model_is_live: boolean;
+  provenance: string;
+  conditions: Record<string, string>;
+  faults: FaultSpec[];
+}
+
+export interface Library {
+  manifest: { captured?: string; model?: string; provider?: string };
+  captures: LibraryCapture[];
+}

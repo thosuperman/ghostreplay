@@ -55,6 +55,7 @@ class UnsafeInfraActionScenario(Scenario):
         "The model is unchanged: the fix is deterministic code."
     )
     headline_invariant = "infra.capacity_preserved"
+    tool_backends = "real isolated lab: 3 HTTP instance services + HTTP controller on 127.0.0.1"
     variants = (
         Variant(
             "vulnerable",

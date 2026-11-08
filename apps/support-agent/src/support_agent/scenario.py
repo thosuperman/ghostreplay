@@ -49,6 +49,7 @@ class DuplicateRefundScenario(Scenario):
         "the fix lives in deterministic code we control."
     )
     headline_invariant = "refund.no_duplicate"
+    tool_backends = "real local services: SQLite database + HTTP refund service on 127.0.0.1 (fictional test data)"
     variants = (
         Variant(
             "vulnerable",

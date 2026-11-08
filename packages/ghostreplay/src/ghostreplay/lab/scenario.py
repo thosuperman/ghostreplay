@@ -61,6 +61,8 @@ class Scenario(ABC):
     variants: tuple[Variant, ...]
     conditions: tuple[Condition, ...] = ()
     headline_invariant: str = ""
+    #: What the tools talk to, shown in every execution's provenance.
+    tool_backends: str = "simulated (in-memory)"
 
     @abstractmethod
     def default_task(self) -> dict[str, Any]: ...
