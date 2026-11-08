@@ -44,10 +44,10 @@ Record ──▶ Replay offline ──▶ Inject a failure ──▶ Detect unsa
 2. **Replay offline.** The agent's real code runs again, but every response comes from the
    recording. Tool handlers are replaced by stubs that raise if called, and network sockets
    are blocked on the replaying thread. The replay is checked to be identical to the recording.
-3. **Inject a failure.** Pick any recorded step and break it with one of 13 fault kinds:
+3. **Inject a failure.** Pick any recorded step and break it with one of 15 fault kinds:
    tool timeout, timeout after commit, HTTP 429, HTTP 500, authentication failure, permission
-   denied, missing field, null value, stale data, incorrect output, duplicate response,
-   delayed operation and partial success.
+   denied, missing field, null value, duplicate response, reordered response, clock skew,
+   stale data, incorrect output, delayed operation and partial success.
 4. **Detect.** Safety invariants check the run: no duplicate refund, retries are idempotent,
    the reply matches the ledger, no destructive action on unverified evidence, capacity is
    preserved, destructive actions require approval.
@@ -144,7 +144,7 @@ event with a field-level diff. Recorded responses are never consumed out of orde
   Luhn-valid card numbers are scrubbed before anything is stored.
 - **Offline guard:** a thread-local socket guard, so a lab server keeps serving HTTP on other
   threads while a replay is blocked from the network.
-- **Mutation:** the 13-kind fault catalog, each with a strategy (`error`, `transform`,
+- **Mutation:** the 15-kind fault catalog, each with a strategy (`error`, `transform`,
   `execute_then_error`, `delay`) and a flag saying whether it needs branch execution. The
   original response is kept on the event so the UI can show exactly what changed.
 - **Diff:** aligns two executions, finds the first divergence, and summarises behaviour:
@@ -339,8 +339,8 @@ More detail: `submission/devpost/challenges.md`.
 ## What we learned
 
 - The hard part of agent reliability is usually not the model but the harness around it:
-  both fixes are deterministic code (an idempotency key, a safety gate) and the scripted
-  model is unchanged.
+  both fixes are deterministic code (an idempotency key, a safety gate) and the model's
+  decisions are unchanged.
 - A single interception point beats patching libraries. Because every interaction goes
   through one place, replay, faults and diffs are properties of the framework rather than of
   each tool.
@@ -353,8 +353,7 @@ More detail: `submission/devpost/challenges.md`.
 
 - Adapters for more model providers and popular agent frameworks, so existing agents can
   adopt the runtime with less wiring.
-- More fault kinds (for example partial pagination, out-of-order events, clock skew) and
-  multi-fault scenarios.
+- More fault kinds (for example partial pagination) and multi-fault scenarios.
 - Importing traces from existing observability formats as a starting point for replay.
 - Publishing the SDK to PyPI, and a GitHub Action that comments regression results on pull
   requests.
