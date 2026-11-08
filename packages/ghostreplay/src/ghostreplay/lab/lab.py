@@ -104,11 +104,13 @@ class Lab:
         title: str = "",
         listeners: Iterable[EventListener] = (),
         model: ModelChoice = "scripted",
+        task: dict[str, Any] | None = None,
     ) -> Execution:
         """Run the agent against a fresh simulated environment and record it.
 
         ``model="live"`` drives the agent with the configured live LLM instead of the
         scripted policy; tools are still simulated, so nothing real is ever changed.
+        ``task`` overrides the scenario's default task (the input handed to the agent).
         """
         scenario = self.scenario(scenario_id)
         return self._execute(
@@ -120,6 +122,7 @@ class Lab:
             title=title,
             listeners=listeners,
             model_choice=model,
+            task=task,
         )
 
     def replay(
@@ -210,6 +213,7 @@ class Lab:
                 conditions=case.conditions,
                 faults=case.faults,
                 title=f"Regression: {case.title}",
+                task=case.task,
             )
         selected = [
             i for i in execution.invariants if case.invariants is None or i.id in case.invariants
@@ -279,6 +283,11 @@ class Lab:
             reference=reference,
             expect=expect,
             mode="branch" if reference is not None else "record",
+            # Only carry the task when it differs from the scenario default (SDK apps pass
+            # their own inputs); bundled scenarios keep their compact case files.
+            task=dict(ex.task)
+            if reference is None and ex.task != scenario.default_task()
+            else None,
         )
 
     def export_case(self, execution_id: str, **kwargs: Any) -> dict[str, Any]:
@@ -446,6 +455,7 @@ class Lab:
         title: str = "",
         listeners: Iterable[EventListener] = (),
         model_choice: ModelChoice = "scripted",
+        task: dict[str, Any] | None = None,
     ) -> Execution:
         scenario.variant(variant)  # validate
         start = datetime.fromisoformat(reference.started_at) if reference else DEFAULT_EPOCH
@@ -467,7 +477,12 @@ class Lab:
             provenance = reference.provenance.model_copy(
                 update={"tool_backends": "none (served from recording)"}
             )
-        task = dict(reference.task) if reference else scenario.default_task()
+        if reference is not None:
+            task = dict(reference.task)
+        elif task is not None:
+            task = dict(task)
+        else:
+            task = scenario.default_task()
         execution = Execution(
             id=f"{_MODE_PREFIX[mode]}_{uuid.uuid4().hex[:10]}",
             app=self.app,

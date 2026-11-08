@@ -3,7 +3,7 @@ name = "devops-agent-lab"
 version = "0.1.0"
 description = "DevOps Agent Lab: the Unsafe Infrastructure Action scenario, built on GhostReplay"
 requires-python = ">=3.12"
-dependencies = ["ghostreplay"]
+dependencies = ["ghostreplay[server]"]
 
 [project.scripts]
 devops-agent-lab = "devops_agent.cli:main"

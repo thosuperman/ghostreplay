@@ -1,20 +1,40 @@
 [project]
 name = "ghostreplay"
 version = "0.1.0"
-description = "Deterministic replay, failure injection and regression testing for AI agents"
+description = "Flight recorder and crash-test lab for AI agents: record, replay offline, inject failures, prove the fix"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
+authors = [{ name = "GhostReplay Lab contributors" }]
+keywords = ["ai-agents", "llm", "testing", "deterministic-replay", "fault-injection", "regression-testing"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Testing",
+  "Typing :: Typed",
+]
+# The SDK itself needs only pydantic. The HTTP API used by the bundled labs is an extra.
 dependencies = [
   "pydantic>=2.7",
-  "fastapi>=0.110",
-  "uvicorn>=0.29",
 ]
+
+[project.urls]
+Homepage = "https://ghostreplay.hayaix.tech"
+Source = "https://github.com/thosuperman/ghost-replay"
+Documentation = "https://github.com/thosuperman/ghost-replay/tree/main/docs/sdk"
 
 [project.scripts]
 ghostreplay = "ghostreplay.cli:main"
 
 [project.optional-dependencies]
+server = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
 live = [
     "anthropic>=1.0",
 ]

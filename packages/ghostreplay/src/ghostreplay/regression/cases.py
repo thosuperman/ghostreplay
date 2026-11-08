@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,7 @@ class RegressionCase(BaseModel):
     scenario: str
     variant: str
     conditions: dict[str, str] = Field(default_factory=dict)
+    task: dict[str, Any] | None = None  # agent input; None = the scenario's default task
     faults: list[FaultSpec] = Field(default_factory=list)
     reference: Execution | None = None
     mode: Literal["auto", "record", "branch"] = "auto"

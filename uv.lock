@@ -92,11 +92,11 @@ name = "devops-agent-lab"
 version = "0.1.0"
 source = { editable = "apps/devops-agent" }
 dependencies = [
-    { name = "ghostreplay" },
+    { name = "ghostreplay", extra = ["server"] },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ghostreplay", editable = "packages/ghostreplay" }]
+requires-dist = [{ name = "ghostreplay", extras = ["server"], editable = "packages/ghostreplay" }]
 
 [[package]]
 name = "docstring-parser"
@@ -129,24 +129,26 @@ name = "ghostreplay"
 version = "0.1.0"
 source = { editable = "packages/ghostreplay" }
 dependencies = [
-    { name = "fastapi" },
     { name = "pydantic" },
-    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
 live = [
     { name = "anthropic" },
 ]
+server = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'live'", specifier = ">=1.0" },
-    { name = "fastapi", specifier = ">=0.110" },
+    { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.110" },
     { name = "pydantic", specifier = ">=2.7" },
-    { name = "uvicorn", specifier = ">=0.29" },
+    { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.29" },
 ]
-provides-extras = ["live"]
+provides-extras = ["server", "live"]
 
 [[package]]
 name = "ghostreplay-lab"
@@ -602,11 +604,11 @@ name = "support-agent-lab"
 version = "0.1.0"
 source = { editable = "apps/support-agent" }
 dependencies = [
-    { name = "ghostreplay" },
+    { name = "ghostreplay", extra = ["server"] },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ghostreplay", editable = "packages/ghostreplay" }]
+requires-dist = [{ name = "ghostreplay", extras = ["server"], editable = "packages/ghostreplay" }]
 
 [[package]]
 name = "truststore"

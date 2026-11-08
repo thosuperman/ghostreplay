@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -17,11 +18,12 @@ Scenario: {scenario} | agent variant: {variant} | expected: {expect}
 Faults: {faults}
 
 The case data lives in {case_file} (plain JSON, validated on load, never executed).
-Re-generate with the dashboard's "Export pytest" button or `Lab.export_case`.
+Re-generate with the dashboard's "Export pytest" button, `Lab.export_case` or
+`GhostReplay.write_regression_test`.
 """
 
 from pathlib import Path
-
+{imports}
 from ghostreplay.regression import load_case, run_case
 
 CASE_FILE = Path(__file__).with_name("{case_file}")
@@ -34,7 +36,19 @@ def test_{func}() -> None:
 '''
 
 
-def pytest_source(case: RegressionCase, case_file: str) -> str:
+_MODULE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+
+
+def pytest_source(case: RegressionCase, case_file: str, *, import_module: str | None = None) -> str:
+    """Pytest module for ``case``. ``import_module`` (a dotted module name, validated) is
+    imported first so an SDK app that registers its scenario on import is available."""
+    if import_module is not None and not _MODULE.match(import_module):
+        raise ValueError(f"invalid module name {import_module!r}")
+    imports = (
+        f"\nimport {import_module}  # noqa: F401  (registers the GhostReplay app)\n"
+        if import_module
+        else ""
+    )
     faults = (
         ", ".join(f"{f.kind}@{f.target.name}#{f.target.occurrence or '*'}" for f in case.faults)
         or "none"
@@ -47,10 +61,13 @@ def pytest_source(case: RegressionCase, case_file: str) -> str:
         faults=faults,
         case_file=case_file,
         func=case.id.replace("-", "_"),
+        imports=imports,
     )
 
 
-def write_case(case: RegressionCase, directory: str | Path) -> tuple[Path, Path]:
+def write_case(
+    case: RegressionCase, directory: str | Path, *, import_module: str | None = None
+) -> tuple[Path, Path]:
     """Write ``<id>.case.json`` and ``test_<id>.py`` inside ``directory`` (no traversal)."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
@@ -58,7 +75,9 @@ def write_case(case: RegressionCase, directory: str | Path) -> tuple[Path, Path]
     case_path = safe_join(directory, case_name)
     test_path = safe_join(directory, f"test_{case.id.replace('-', '_')}.py")
     case_path.write_text(case.model_dump_json(indent=2), encoding="utf-8")
-    test_path.write_text(pytest_source(case, case_name), encoding="utf-8")
+    test_path.write_text(
+        pytest_source(case, case_name, import_module=import_module), encoding="utf-8"
+    )
     return case_path, test_path
 
 

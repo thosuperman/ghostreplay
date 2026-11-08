@@ -31,12 +31,15 @@ from .models import (
     FaultSpec,
     FaultTarget,
 )
+from .regression.invariants import Check, Invariant, TraceView
 from .runtime import AgentRuntime, ModelResult
+from .sdk import GhostReplay, Run, fault
 
 __all__ = [
     "AgentResult",
     "AgentRuntime",
     "AuthError",
+    "Check",
     "DeterministicSources",
     "Event",
     "EventKind",
@@ -46,8 +49,10 @@ __all__ = [
     "FaultPreset",
     "FaultSpec",
     "FaultTarget",
+    "GhostReplay",
     "GhostReplayError",
     "HttpError",
+    "Invariant",
     "MissingRecordingError",
     "ModelResult",
     "OfflineViolation",
@@ -55,10 +60,13 @@ __all__ = [
     "PermissionDenied",
     "RateLimited",
     "ReplayDivergenceError",
+    "Run",
     "SystemClock",
     "ToolError",
     "ToolTimeout",
     "TraceFormatError",
+    "TraceView",
     "VirtualClock",
     "__version__",
+    "fault",
 ]

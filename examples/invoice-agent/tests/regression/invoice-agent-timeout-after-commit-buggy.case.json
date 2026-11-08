@@ -1,0 +1,29 @@
+{
+  "schema_version": "ghostreplay/v1",
+  "id": "invoice-agent-timeout-after-commit-buggy",
+  "title": "Invoice Processing Agent: timeout after commit (buggy)",
+  "description": "Generated from execution rec_1983ecbce6. Expected FAIL: the detector must catch the bug.",
+  "app": "invoice-agent",
+  "scenario": "invoice-agent",
+  "variant": "buggy",
+  "conditions": {},
+  "task": null,
+  "faults": [
+    {
+      "id": "timeout_after_commit.payments.pay.1",
+      "kind": "timeout_after_commit",
+      "target": {
+        "kind": "tool_call",
+        "name": "payments.pay",
+        "occurrence": 1,
+        "where": {}
+      },
+      "params": {},
+      "description": ""
+    }
+  ],
+  "reference": null,
+  "mode": "record",
+  "invariants": null,
+  "expect": "fail"
+}

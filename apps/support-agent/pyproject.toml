@@ -3,7 +3,7 @@ name = "support-agent-lab"
 version = "0.1.0"
 description = "Support Agent Lab: the Duplicate Refund scenario, built on GhostReplay"
 requires-python = ">=3.12"
-dependencies = ["ghostreplay"]
+dependencies = ["ghostreplay[server]"]
 
 [project.scripts]
 support-agent-lab = "support_agent.cli:main"
