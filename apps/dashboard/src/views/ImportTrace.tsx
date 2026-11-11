@@ -75,7 +75,7 @@ export function ImportTrace() {
         <div className="font-semibold text-white">What happens to an uploaded trace</div>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>The server validates it against the versioned schema (<code className="font-mono">ghostreplay/v1</code>), rejects anything malformed, and redacts secret-looking values again.</li>
-          <li>It is stored only for your browser session and deleted after 24 hours. Other visitors cannot see it.</li>
+          <li>It is stored only for your browser session and deleted after 24 hours (nightly backups are kept up to 14 days; see the Privacy Policy). Other visitors cannot see it.</li>
           <li>Nothing in it is executed. Traces from the two demo labs can be replayed here. A trace from your own agent can only be replayed where its code lives: <code className="font-mono">ghostreplay replay TRACE --app your_module:ghost</code>.</li>
         </ul>
       </div>

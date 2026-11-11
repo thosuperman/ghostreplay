@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import type { LabId } from "../api/client";
 
 export type DemoId = "refund" | "devops";
+export type LegalPage = "terms" | "privacy" | "disclaimer";
+const LEGAL: readonly string[] = ["terms", "privacy", "disclaimer"];
 
 export type Route =
   | { name: "home" }
   | { name: "demo"; demo: DemoId }
   | { name: "connect" }
   | { name: "import" }
+  | { name: "legal"; page: LegalPage }
   | { name: "story"; lab: LabId }
   | { name: "executions"; lab: LabId }
   | { name: "execution"; lab: LabId; id: string; focus?: string }
@@ -25,6 +28,7 @@ export function parse(hash: string): Route {
   if (lab === "demo") return section === "devops" ? { name: "demo", demo: "devops" } : { name: "demo", demo: "refund" };
   if (lab === "connect") return { name: "connect" };
   if (lab === "import") return { name: "import" };
+  if (lab && LEGAL.includes(lab)) return { name: "legal", page: lab as LegalPage };
   if (!isLab(lab)) return { name: "home" };
   switch (section) {
     case "story":
@@ -54,6 +58,8 @@ export function href(route: Route): string {
       return "#/connect";
     case "import":
       return "#/import";
+    case "legal":
+      return `#/${route.page}`;
     case "story":
       return `#/${route.lab}/story`;
     case "executions":
@@ -83,12 +89,12 @@ export function navigate(route: Route): void {
 /** Pretty paths (/demo/refund, /connect, /import) are served the dashboard by the proxy;
  *  map them onto the hash routes the app uses. */
 function adoptPathname(): void {
-  const m = window.location.pathname.match(/^\/(demo\/(?:refund|devops)|connect|import)\/?$/);
+  const m = window.location.pathname.match(/^\/(demo\/(?:refund|devops)|connect|import|terms|privacy|disclaimer)\/?$/);
   if (m && !window.location.hash) window.history.replaceState(null, "", `/#/${m[1]}`);
 }
 
 export function isGuided(route: Route): boolean {
-  return route.name === "home" || route.name === "demo" || route.name === "connect";
+  return route.name === "home" || route.name === "demo" || route.name === "connect" || route.name === "legal";
 }
 
 export function useRoute(): Route {

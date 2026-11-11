@@ -6,6 +6,7 @@ import { href, isGuided, type Route, useRoute } from "./lib/router";
 import { Connect } from "./views/Connect";
 import { GuidedDemo } from "./views/GuidedDemo";
 import { ImportTrace } from "./views/ImportTrace";
+import { Legal } from "./views/Legal";
 import { DiffView } from "./views/DiffView";
 import { ExecutionView } from "./views/ExecutionView";
 import { Explorer } from "./views/Explorer";
@@ -218,7 +219,26 @@ export function App() {
       <main className="mx-auto max-w-[1500px] px-5 py-8">
         <View route={route} />
       </main>
+
+      <SiteFooter />
     </div>
+  );
+}
+
+function SiteFooter() {
+  const link = "hover:text-white";
+  return (
+    <footer className="border-t hairline px-5 py-5 text-xs text-ink-400" data-testid="site-footer">
+      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-4 gap-y-2">
+        <span>© 2026 GhostReplay Lab · MIT License</span>
+        <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Legal">
+          <a className={link} href={href({ name: "legal", page: "terms" })}>Terms</a>
+          <a className={link} href={href({ name: "legal", page: "privacy" })}>Privacy</a>
+          <a className={link} href={href({ name: "legal", page: "disclaimer" })}>Disclaimer</a>
+          <a className={link} href="https://github.com/thosuperman/ghostreplay" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </footer>
   );
 }
 
@@ -232,6 +252,8 @@ function View({ route }: { route: Route }) {
       return <Connect />;
     case "import":
       return <ImportTrace />;
+    case "legal":
+      return <Legal key={route.page} page={route.page} />;
     case "story":
       return <Story key={route.lab} lab={route.lab} />;
     case "executions":

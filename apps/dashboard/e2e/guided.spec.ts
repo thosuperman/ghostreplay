@@ -87,3 +87,20 @@ test.describe("trace import", () => {
   await expect(page.getByRole("alert")).toContainText("uploaded trace");
 });
 });
+
+test("legal pages are reachable from the footer and by their pretty paths", async ({ page }) => {
+  await page.goto("/");
+  const footer = page.getByTestId("site-footer");
+  for (const [label, id, heading] of [
+    ["Terms", "terms", "Terms of Service"],
+    ["Privacy", "privacy", "Privacy Policy"],
+    ["Disclaimer", "disclaimer", "Disclaimer"],
+  ] as const) {
+    await footer.getByRole("link", { name: label, exact: true }).click();
+    await expect(page.getByTestId(`legal-${id}`).getByRole("heading", { level: 1 })).toHaveText(heading);
+    await expect(page.getByTestId(`legal-${id}`)).toContainText("Last updated:");
+  }
+  await page.goto("/privacy");
+  await expect(page).toHaveURL(/#\/privacy$/);
+  await expect(page.getByTestId("legal-privacy")).toContainText("gr_session");
+});
