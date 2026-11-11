@@ -100,9 +100,10 @@ function Terms() {
   return (
     <>
       <Summary>
-        <b className="text-white">In short:</b> GhostReplay Lab is a free, open-source demo of a testing tool for AI
-        agents, run as a personal project. Use it to explore and learn, don’t abuse it, and don’t rely on it for anything
-        important. It is provided as is.
+        <b className="text-white">In short:</b> GhostReplay Lab is a free, personal hobby project showcase, not a
+        commercial service. Everything here is provided <b className="text-white">“as is”</b> and{" "}
+        <b className="text-white">“as available”</b>, without warranties. You use it voluntarily and{" "}
+        <b className="text-white">at your own risk</b>.
       </Summary>
 
       <Section title="1. Who we are and acceptance of these terms">
@@ -120,7 +121,17 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="2. Permitted use">
+      <Section title="2. This Site and other hayaix.tech applications">
+        <p>
+          This Site is one of several independent projects published under the hayaix.tech domain. These Terms apply
+          only to {SITE.replace("https://", "")}. Other applications on hayaix.tech subdomains, and any application
+          linked from this Site, are operated independently, have their own terms and policies, and are not covered by
+          these Terms. Using this Site does not create any relationship with those applications, and nothing on this Site
+          is a statement about them.
+        </p>
+      </Section>
+
+      <Section title="3. Permitted use">
         <p>You may use the Site, free of charge and without an account, to:</p>
         <List>
           <li>run the guided demos and the developer views;</li>
@@ -130,7 +141,7 @@ function Terms() {
         </List>
       </Section>
 
-      <Section title="3. Prohibited activities">
+      <Section title="4. Prohibited activities">
         <p>You agree not to:</p>
         <List>
           <li>use the Site for anything unlawful, or to infringe anyone’s rights;</li>
@@ -152,7 +163,7 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="4. Intellectual property">
+      <Section title="5. Intellectual property">
         <p>
           The GhostReplay software is open source under the MIT License. The Site’s name, logo, ghost icon, design,
           screenshots, demo video and written content are ours unless stated otherwise. You may share links and
@@ -166,7 +177,7 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="5. Third-party websites and services">
+      <Section title="6. Third-party websites and services">
         <p>
           The Site links to third-party websites such as GitHub and YouTube, and it is hosted on third-party
           infrastructure (Amazon Web Services). We do not control third-party sites and are not responsible for their
@@ -174,7 +185,7 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="6. Availability and changes to the Site">
+      <Section title="7. Availability and changes to the Site">
         <p>
           The Site is a personal project run on a single small server. It may be slow, unavailable, reset or
           discontinued at any time, with or without notice. We may change, add or remove features, change limits (such
@@ -182,7 +193,7 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="7. Experimental software">
+      <Section title="8. Experimental software">
         <p>
           GhostReplay Lab is experimental software under active development. Features may be incomplete, behave
           unexpectedly or change between versions. The demos use fictional test data and isolated local services. No
@@ -191,31 +202,39 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="8. No warranties">
+      <Section title="9. Free service, provided as is and as available">
         <p>
-          To the extent permitted by applicable law, the Site and everything on it are provided “as is” and “as
-          available”, without warranties of any kind, express or implied, including warranties of merchantability,
-          fitness for a particular purpose, accuracy, reliability, availability and non-infringement. We do not warrant
-          that the Site will be uninterrupted, secure or error-free, or that results shown on it are correct.
+          The Site and all its content, demos and features are provided <b className="text-white">free of charge</b>,
+          {" "}<b className="text-white">“AS IS”</b> and <b className="text-white">“AS AVAILABLE”</b>, without warranties
+          of any kind, express or implied, to the extent permitted by applicable law. This includes any warranty of
+          accuracy, reliability, security, availability, uninterrupted or error-free operation, fitness for a particular
+          purpose or non-infringement. We do not guarantee that any result, verdict or explanation shown on the Site is
+          correct.
+        </p>
+        <p>
+          <b className="text-white">You access and use the Site voluntarily and at your own risk.</b> Nothing on the
+          Site is an offer of a paid service, and nothing on it promises any investment return, financial outcome or
+          business result.
         </p>
       </Section>
 
-      <Section title="9. Limitation of liability">
+      <Section title="10. Limitation of liability">
         <p>
-          To the extent permitted by applicable law, we are not liable for any indirect, incidental, special,
-          consequential or punitive damages, or for any loss of data, profits, revenue or business, arising out of or in
-          connection with the Site or these Terms, even if we were advised of the possibility of such damages. The Site
-          is provided free of charge, and our total liability for any claim relating to it is limited to the maximum
-          extent permitted by law.
+          To the extent permitted by applicable law, we are not responsible for any loss or damage arising from your use
+          of, or reliance on, the Site. This includes its experimental features, AI-generated content (including recorded
+          model output and deliberately injected decisions), downtime or data deletion, and third-party services or
+          websites linked from or used by the Site. These Terms do not set any compensation amount or monetary limit.
         </p>
         <p>
-          Nothing in these Terms excludes or limits liability that cannot be excluded or limited under applicable law,
-          including liability for wilful misconduct or gross negligence, or any rights you have as a consumer under
-          mandatory law (including Japan’s Consumer Contract Act, where it applies).
+          Nothing in these Terms excludes or limits liability that cannot be excluded or limited under Japanese law or
+          other applicable mandatory law. This includes liability for damage caused by our intentional misconduct or
+          gross negligence, and any rights you have as a consumer under Japan’s Consumer Contract Act. If any part of
+          these Terms is found invalid under such law, it applies to the fullest extent the law allows, and the rest of
+          these Terms remains in effect.
         </p>
       </Section>
 
-      <Section title="10. Your responsibilities">
+      <Section title="11. Your responsibilities">
         <List>
           <li>You are responsible for the data you upload and for having the right to upload it.</li>
           <li>
@@ -226,7 +245,7 @@ function Terms() {
         </List>
       </Section>
 
-      <Section title="11. Changes to these Terms">
+      <Section title="12. Changes to these Terms">
         <p>
           We may update these Terms from time to time. The “Last updated” date at the top shows the current version, and
           the change history is public in the repository. Continued use of the Site after a change means you accept the
@@ -234,7 +253,7 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="12. Governing law">
+      <Section title="13. Governing law">
         <p>
           These Terms are governed by the laws of Japan, without regard to conflict-of-laws rules, and subject to any
           mandatory laws that apply to you where you live. Any dispute will be handled by the competent courts of Japan,
@@ -242,7 +261,7 @@ function Terms() {
         </p>
       </Section>
 
-      <Section title="13. Contact">
+      <Section title="14. Contact">
         <Contact />
       </Section>
     </>
@@ -485,9 +504,9 @@ function Disclaimer() {
   return (
     <>
       <Summary>
-        <b className="text-white">In short:</b> this is a personal, experimental project for learning and evaluation.
-        It is not a production service, nothing on it is professional advice, and anything involving AI can be wrong.
-        Check results yourself before relying on them.
+        <b className="text-white">In short:</b> a free, personal hobby project showcase, not a commercial service.
+        Everything is provided <b className="text-white">AS IS</b> and <b className="text-white">AS AVAILABLE</b>.{" "}
+        <b className="text-white">Use it at your own risk</b>, and check anything involving AI before relying on it.
       </Summary>
 
       <Section title="A personal, experimental project">
@@ -502,17 +521,34 @@ function Disclaimer() {
         </p>
       </Section>
 
-      <Section title="No guarantees">
+      <Section title="As is, as available, at your own risk">
         <p>
-          We make no guarantee that the Site, the software or any result, measurement, verdict or explanation shown on
-          them is accurate, complete, reliable, current, available or fit for a particular purpose. A passing check or a
-          “fix proven” verdict means the specific scenario passed under the specific conditions shown. It does not mean
-          your system is safe. Test any code or approach in your own environment before using it.
+          All services and content on the Site are provided free of charge, “AS IS” and “AS AVAILABLE”, without
+          warranties, to the extent permitted by applicable law. There is no guarantee of availability, accuracy,
+          reliability, security or uninterrupted operation, and the Site or its data may change or disappear at any time.
+          You access and use the Site voluntarily and at your own risk.
         </p>
         <p>
-          Nothing on the Site is legal, financial, security or other professional advice. The Site is provided as is. See
-          the <A to={href({ name: "legal", page: "terms" })}>Terms of Service</A> for the full warranty disclaimer and
-          limitation of liability.
+          A passing check or a “fix proven” verdict means the specific scenario passed under the specific conditions
+          shown. It does not mean your system is safe. Test any code or approach in your own environment before using it.
+        </p>
+      </Section>
+
+      <Section title="No advice and no financial outcomes">
+        <p>
+          Nothing on the Site is legal, financial, investment, security or other professional advice. Payments, refunds
+          and invoices in the demos are fictional. Nothing on the Site promises or implies any investment return,
+          financial outcome or business result.
+        </p>
+      </Section>
+
+      <Section title="Reliance and responsibility">
+        <p>
+          To the extent permitted by applicable law, we are not responsible for losses arising from reliance on
+          experimental features, AI-generated content or third-party services. We do not set any compensation amount or
+          monetary limit. Nothing here excludes liability that cannot be excluded under Japanese law, such as liability
+          for intentional misconduct or gross negligence, or your rights under Japan’s Consumer Contract Act. See the{" "}
+          <A to={href({ name: "legal", page: "terms" })}>Terms of Service</A> for the full terms.
         </p>
       </Section>
 
@@ -540,7 +576,12 @@ function Disclaimer() {
         </List>
       </Section>
 
-      <Section title="External links and trademarks">
+      <Section title="hayaix.tech, linked applications and trademarks">
+        <p>
+          This Site ({SITE.replace("https://", "")}) is one of several independent projects under the hayaix.tech
+          domain. Other hayaix.tech applications, and any application or site linked from here, are operated
+          independently under their own terms. This disclaimer covers only this Site.
+        </p>
         <p>
           Links to third-party sites are provided for convenience. We are not responsible for their content. Product
           names such as Claude, Anthropic, AWS, GitHub, YouTube and Kiro are trademarks of their owners, used only to
